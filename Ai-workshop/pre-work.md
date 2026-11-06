@@ -5,7 +5,7 @@ BSidesDFW 2026 workshop, Saturday, November 7, 2026, Nedderman Hall, UTA. Please
 ## What's in this section
 
 1. [Access to participate (BSidesDFW Discord)](#section-1-access-to-participate-bsidesdfw-discord)
-2. [Downloads and Installs (large files)](#section-2-downloads-and-installs-large-files): everything Labs 1 to 4 need
+2. [Downloads and Installs (large files)](#section-2-downloads-and-installs-large-files)
 3. [Helpful Knowledge (YouTube Videos)](#section-3-helpful-knowledge-youtube-videos)
 4. [Optional extras](#section-4-optional-extras): cloud accounts and API keys, the official AI command-line tools and desktop apps, and files for the optional parts and homework labs
 
