@@ -183,6 +183,70 @@ To see the sizes first, add `--dry-run`. If you do not have much disk space, do 
 
 If an item fails, do the command again. If it fails again, send a message to the Discord forum channel or to `<INSTRUCTOR_EMAIL>`.
 
+**To work without the internet at the workshop (optional).** The Download All scripts `LAB1-4_<OS>_pre-fetch.sh`, `.ps1` and `.py` in the `Ai-workshop` folder download every file for Labs 1 to 4 (installers, Python packages, models, Docker images and Ollama models) into `Downloads/<OS>`. Use the name of your operating system: `Windows`, `MacOS` or `Linux`. Each lab folder also has pre-fetch scripts for that lab only. At the workshop, use the `..._OFFLINE.md` walkthrough of each lab. For example:
+
+```
+powershell -ExecutionPolicy Bypass -File .\LAB1-4_Windows_pre-fetch.ps1     # Windows
+bash LAB1-4_MacOS_pre-fetch.sh                                            # macOS
+python3 LAB1-4_Linux_pre-fetch.py                                         # Linux (or the .sh file)
+```
+
+### Download each item directly (without a script)
+
+Each item below has a link and a command. Do the commands in the `Ai-workshop` folder. On Windows, use `curl.exe` (part of Windows 10 and 11), not `curl`. If a download stops, add `-C -` and do the command again: it continues the file. Your guide for your operating system has the same list with the exact commands.
+
+**Installers and programs:**
+
+| Item | Windows | macOS (Apple silicon) | Linux | Labs |
+|---|---|---|---|---|
+| Python 3.12 | [`python-3.12.10-amd64.exe`](https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe) | [`python-3.12.10-macos11.pkg`](https://www.python.org/ftp/python/3.12.10/python-3.12.10-macos11.pkg) | [`cpython-3.12.16+20261026-x86_64-unknown-linux-gnu-install_only.tar.gz`](https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.12.16%2B20261026-x86_64-unknown-linux-gnu-install_only.tar.gz) | 1 to 4 |
+| WSL 2 | [`wsl.3.0.3.0.x64.msi`](https://github.com/microsoft/WSL/releases/download/3.0.3/wsl.3.0.3.0.x64.msi) | Not necessary | Not necessary | 1, 2, 4 |
+| Docker | [`Docker Desktop Installer.exe`](https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe) | [`Docker-arm64.dmg`](https://desktop.docker.com/mac/main/arm64/Docker.dmg) | [`docker-compose-linux-x86_64`](https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64) and the newest `docker-X.Y.Z.tgz` from the [index](https://download.docker.com/linux/static/stable/x86_64/) (if your distribution does not have Docker) | 1, 2, 4 |
+| VS Code | [`VSCodeUserSetup-x64.exe`](https://update.code.visualstudio.com/latest/win32-x64-user/stable) | [`VSCode-darwin-universal.zip`](https://update.code.visualstudio.com/latest/darwin-universal/stable) | [`code_amd64.deb`](https://update.code.visualstudio.com/latest/linux-deb-x64/stable) | 3 |
+| Continue extension | [`continue-win32-x64-1.3.40.vsix`](https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-win32-x64-1.3.40.vsix) | [`continue-darwin-arm64-1.3.40.vsix`](https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-darwin-arm64-1.3.40.vsix) | [`continue-linux-x64-1.3.40.vsix`](https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-linux-x64-1.3.40.vsix) | 3 |
+| Obsidian (optional) | [`Obsidian-1.15.0.exe`](https://github.com/obsidianmd/obsidian-releases/releases/download/v1.15.0/Obsidian-1.15.0.exe) | [`Obsidian-1.15.0.dmg`](https://github.com/obsidianmd/obsidian-releases/releases/download/v1.15.0/Obsidian-1.15.0.dmg) | [`Obsidian-1.15.0.AppImage`](https://github.com/obsidianmd/obsidian-releases/releases/download/v1.15.0/Obsidian-1.15.0.AppImage) | 3 |
+| KoboldCpp, CPU build (into `Lab01/kobold`) | [`koboldcpp-nocuda.exe`](https://github.com/LostRuins/koboldcpp/releases/download/v1.124.2/koboldcpp-nocuda.exe) | [`koboldcpp-mac-arm64`](https://github.com/LostRuins/koboldcpp/releases/download/v1.124.2/koboldcpp-mac-arm64) | [`koboldcpp-linux-x64-nocuda`](https://github.com/LostRuins/koboldcpp/releases/download/v1.124.2/koboldcpp-linux-x64-nocuda) | 1 |
+| llama-cpp-python, prebuilt file | [`llama_cpp_python-0.3.36-py3-none-win_amd64.whl`](https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.36/llama_cpp_python-0.3.36-py3-none-win_amd64.whl) | [`llama_cpp_python-0.3.36-py3-none-macosx_11_0_arm64.whl`](https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.36/llama_cpp_python-0.3.36-py3-none-macosx_11_0_arm64.whl) | [`llama_cpp_python-0.3.36-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl`](https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.36/llama_cpp_python-0.3.36-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl) | 1 to 4 |
+
+To download one of these files, do `curl -L -o` with the file name from the table and the link, for example `curl -L -o continue-linux-x64-1.3.40.vsix "https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-linux-x64-1.3.40.vsix"` (Windows: `curl.exe`).
+
+**Models** (into `Lab01/models`):
+
+```
+curl -L --create-dirs -o "Lab01/models/qwen2.5-1.5b-instruct-q4_k_m.gguf" "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+curl -L --create-dirs -o "Lab01/models/Qwen3-4B-Q4_K_M.gguf" "https://huggingface.co/ggml-org/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/generation_config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/tokenizer.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/tokenizer_config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/model.safetensors" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/model.safetensors"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/generation_config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/tokenizer.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/tokenizer_config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json"
+curl -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/onnx/model_quantized.onnx" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_quantized.onnx"
+```
+
+**Docker images:**
+
+```
+docker pull ollama/ollama:latest
+docker pull ghcr.io/open-webui/open-webui:main
+docker pull koboldai/koboldcpp:latest
+docker pull ghcr.io/ggml-org/llama.cpp:server
+```
+
+**Models in Ollama** (in the `Lab01` folder):
+
+```
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen2.5:1.5b
+docker compose exec ollama ollama pull qwen3:1.7b
+docker compose --profile ollama down
+```
+
+**Python packages:** Section 2.5 gives the `pip install` commands.
+
 ## 2.7 Configure and make sure that the setup is correct
 
 Do these steps one time, after the downloads. Use a terminal in the `Lab01` folder, with the virtual environment active.

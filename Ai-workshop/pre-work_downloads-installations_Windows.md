@@ -15,6 +15,16 @@ A GPU is not necessary. All commands are for a computer without a GPU. Section 7
 
 Use PowerShell for all commands. Use `py -3` where other guides use `python3`.
 
+**Lab walkthroughs for Windows.** Use the online walkthrough if you download the files at home. Use the offline walkthrough if you use a USB drive or the pre-fetch scripts (section 8).
+
+| Lab | Walkthrough | Offline walkthrough |
+|---|---|---|
+| Lab 1: Run a Model in a Harness | [LAB01_Windows_Run_a_Model_in_a_Harness.md](Lab01/LAB01_Windows_Run_a_Model_in_a_Harness.md) | [LAB01_Windows_Run_a_Model_in_a_Harness_OFFLINE.md](Lab01/LAB01_Windows_Run_a_Model_in_a_Harness_OFFLINE.md) |
+| Lab 2: Benchmarking Models and Harnesses | [LAB02_Windows_Benchmarking_Models_and_Harnesses.md](Lab02/LAB02_Windows_Benchmarking_Models_and_Harnesses.md) | [LAB02_Windows_Benchmarking_Models_and_Harnesses_OFFLINE.md](Lab02/LAB02_Windows_Benchmarking_Models_and_Harnesses_OFFLINE.md) |
+| Lab 3: Integrations and Tooling | [LAB03_Windows_Integrations_and_Tooling.md](Lab03/LAB03_Windows_Integrations_and_Tooling.md) | [LAB03_Windows_Integrations_and_Tooling_OFFLINE.md](Lab03/LAB03_Windows_Integrations_and_Tooling_OFFLINE.md) |
+| Lab 4: Logging and Compliance | [LAB04_Windows_Logging_and_Compliance.md](Lab04/LAB04_Windows_Logging_and_Compliance.md) | [LAB04_Windows_Logging_and_Compliance_OFFLINE.md](Lab04/LAB04_Windows_Logging_and_Compliance_OFFLINE.md) |
+| Lab 5: Surprise Bonus Lab | [LAB05_Windows_Surprise_Bonus_Lab.md](Lab05/LAB05_Windows_Surprise_Bonus_Lab.md) | [LAB05_Windows_Surprise_Bonus_Lab_OFFLINE.md](Lab05/LAB05_Windows_Surprise_Bonus_Lab_OFFLINE.md) |
+
 | Section | Contents |
 |---|---|
 | 1 | Download links |
@@ -25,6 +35,7 @@ Use PowerShell for all commands. Use `py -3` where other guides use `python3`.
 | 6 | Install the Python packages |
 | 7 | GPU software (optional) |
 | 8 | Download the models and the Docker images |
+| 8a | Download each item directly (without a script) |
 | 9 | Configure and make sure that the setup is correct |
 | 10 | Make sure that the labs operate offline |
 | 11 | Problems and solutions |
@@ -232,6 +243,89 @@ These four models have the Apache 2.0 license. A Hugging Face account is not nec
 |---|---|---|
 | Image models for Lab 1, Part 2c: [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224) and [stabilityai/sd-turbo](https://huggingface.co/stabilityai/sd-turbo) | `py -3 prefetch_lab1images.py` | 3 GB |
 | Ministral 3 for Lab 1, Part 1e, and Lab 2, Part 2f: [unsloth/Ministral-3-3B-Instruct-2512-GGUF](https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF) | `py -3 prefetch_lab1ministral.py` | 3.2 GB |
+
+## 8a. Download each item directly (without a script)
+
+Use this section if you do not want to use a script, or if a script fails. Each item has a link and a command. Do the commands in the `Ai-workshop` folder. The commands use `curl.exe` (it is part of Windows 10 and 11; do not use `curl` in Windows PowerShell 5.1, because it is a different command). The `-L` option follows redirects. `--create-dirs` makes the folders. If a download stops, add `-C -` and do the command again: it continues the file.
+
+**Installers and programs.** Save the installers in a folder of your choice. The KoboldCpp program goes into `Lab01/kobold`.
+
+| File | Link | Command | Labs |
+|---|---|---|---|
+| `python-3.12.10-amd64.exe` | [Download](https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe) | `curl.exe -L --create-dirs -o "python-3.12.10-amd64.exe" "https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe"` | 1 to 4 |
+| `wsl.3.0.3.0.x64.msi` | [Download](https://github.com/microsoft/WSL/releases/download/3.0.3/wsl.3.0.3.0.x64.msi) | `curl.exe -L --create-dirs -o "wsl.3.0.3.0.x64.msi" "https://github.com/microsoft/WSL/releases/download/3.0.3/wsl.3.0.3.0.x64.msi"` | 1, 2, 4 |
+| `Docker Desktop Installer.exe` | [Download](https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe) | `curl.exe -L --create-dirs -o "Docker Desktop Installer.exe" "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"` | 1, 2, 4 |
+| `VSCodeUserSetup-x64.exe` | [Download](https://update.code.visualstudio.com/latest/win32-x64-user/stable) | `curl.exe -L --create-dirs -o "VSCodeUserSetup-x64.exe" "https://update.code.visualstudio.com/latest/win32-x64-user/stable"` | 3 |
+| `continue-win32-x64-1.3.40.vsix` | [Download](https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-win32-x64-1.3.40.vsix) | `curl.exe -L --create-dirs -o "continue-win32-x64-1.3.40.vsix" "https://github.com/continuedev/continue/releases/download/v1.3.40-vscode/continue-win32-x64-1.3.40.vsix"` | 3 |
+| `Obsidian-1.15.0.exe` | [Download](https://github.com/obsidianmd/obsidian-releases/releases/download/v1.15.0/Obsidian-1.15.0.exe) | `curl.exe -L --create-dirs -o "Obsidian-1.15.0.exe" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.15.0/Obsidian-1.15.0.exe"` | 3 |
+| `koboldcpp-nocuda.exe` | [Download](https://github.com/LostRuins/koboldcpp/releases/download/v1.124.2/koboldcpp-nocuda.exe) | `curl.exe -L --create-dirs -o "Lab01/kobold/koboldcpp-nocuda.exe" "https://github.com/LostRuins/koboldcpp/releases/download/v1.124.2/koboldcpp-nocuda.exe"` | 1 |
+
+You can also install WSL with `wsl --install` in PowerShell as Administrator. That command downloads WSL from the internet.
+
+**Python packages.** Section 6 gives the `pip install` commands. pip downloads each package from [PyPI](https://pypi.org/) and PyTorch from PyPI. The prebuilt `llama-cpp-python` file for Windows is also on [GitHub](https://github.com/abetlen/llama-cpp-python/releases/tag/v0.3.36):
+
+```
+curl.exe -L -O "https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.36/llama_cpp_python-0.3.36-py3-none-win_amd64.whl"
+```
+
+Then install that file with `pip install` and the file name, before `pip install -r requirements.txt`.
+
+**Models.** The files go into `Lab01/models`. The safetensors and ONNX models are folders: download all files of each folder. The model pages are [Qwen/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF), [ggml-org/Qwen3-4B-GGUF](https://huggingface.co/ggml-org/Qwen3-4B-GGUF), [Qwen/Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) and [onnx-community/Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct).
+
+```
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-1.5b-instruct-q4_k_m.gguf" "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf"
+curl.exe -L --create-dirs -o "Lab01/models/Qwen3-4B-Q4_K_M.gguf" "https://huggingface.co/ggml-org/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/generation_config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/tokenizer.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/tokenizer_config.json" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct/model.safetensors" "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/model.safetensors"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/generation_config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/tokenizer.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/tokenizer_config.json" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/qwen2.5-0.5b-instruct-onnx/onnx/model_quantized.onnx" "https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_quantized.onnx"
+```
+
+**Docker images.** Start Docker Desktop first.
+
+```
+docker pull ollama/ollama:latest
+docker pull ghcr.io/open-webui/open-webui:main
+docker pull koboldai/koboldcpp:latest
+docker pull ghcr.io/ggml-org/llama.cpp:server
+```
+
+**Models in Ollama.** In the `Lab01` folder, start Ollama, download the two models, then stop Ollama:
+
+```
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen2.5:1.5b
+docker compose exec ollama ollama pull qwen3:1.7b
+docker compose --profile ollama down
+```
+
+**Optional models** (Lab 1 Part 1e and Part 2c, Lab 2 Part 2f):
+
+```
+curl.exe -L --create-dirs -o "Lab01/models/Ministral-3-3B-Instruct-2512-UD-IQ2_XXS.gguf" "https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF/resolve/main/Ministral-3-3B-Instruct-2512-UD-IQ2_XXS.gguf"
+curl.exe -L --create-dirs -o "Lab01/models/Ministral-3-3B-Instruct-2512-UD-IQ1_M.gguf" "https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF/resolve/main/Ministral-3-3B-Instruct-2512-UD-IQ1_M.gguf"
+curl.exe -L --create-dirs -o "Lab01/models/vit-base-patch16-224/config.json" "https://huggingface.co/google/vit-base-patch16-224/resolve/main/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/vit-base-patch16-224/preprocessor_config.json" "https://huggingface.co/google/vit-base-patch16-224/resolve/main/preprocessor_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/vit-base-patch16-224/model.safetensors" "https://huggingface.co/google/vit-base-patch16-224/resolve/main/model.safetensors"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/model_index.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/model_index.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/scheduler/scheduler_config.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/scheduler/scheduler_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/text_encoder/config.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/text_encoder/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/text_encoder/model.fp16.safetensors" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/text_encoder/model.fp16.safetensors"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/tokenizer/merges.txt" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/tokenizer/merges.txt"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/tokenizer/special_tokens_map.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/tokenizer/special_tokens_map.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/tokenizer/tokenizer_config.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/tokenizer/tokenizer_config.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/tokenizer/vocab.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/tokenizer/vocab.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/unet/config.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/unet/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/unet/diffusion_pytorch_model.fp16.safetensors" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/unet/diffusion_pytorch_model.fp16.safetensors"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/vae/config.json" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/vae/config.json"
+curl.exe -L --create-dirs -o "Lab01/models/sd-turbo/vae/diffusion_pytorch_model.fp16.safetensors" "https://huggingface.co/stabilityai/sd-turbo/resolve/main/vae/diffusion_pytorch_model.fp16.safetensors"
+```
 
 ## 9. Configure and make sure that the setup is correct
 
