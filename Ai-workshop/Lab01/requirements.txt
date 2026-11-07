@@ -1,0 +1,13 @@
+# Lab 1 core packages. Install with:  python3 -m pip install -r requirements.txt
+# llama-cpp-python runs GGUF models. Most laptops get a prebuilt CPU wheel from the extra index.
+# If pip starts compiling and fails, see README.md ("If llama-cpp-python will not install").
+# onnxruntime runs ONNX models; transformers is used only for tokenizers and chat templates here.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python
+gguf
+numpy
+safetensors
+onnx
+onnxruntime
+transformers
+jinja2
