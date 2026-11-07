@@ -21,7 +21,7 @@ $OsName = "MacOS"
 $Labs = "3"
 $RootUp = 1
 $Scope = "Lab 3 (Integrations and Tooling)"
-$DryRun = $false; $Optional = $false; $Gpu = $false; $SkipDocker = $false; $Refresh = $false; $Pack = $false; $PackOnly = $false; $Dest = $null
+$DryRun = $false; $Optional = $false; $Gpu = $false; $SkipDocker = $false; $Refresh = $false; $Pack = $false; $PackOnly = $false; $DlDir = $null
 for ($i = 0; $i -lt $args.Count; $i++) {
     $a = [string]$args[$i]
     switch -regex ($a) {
@@ -32,19 +32,19 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         '^--?refresh$' { $Refresh = $true }
         '^--?pack$' { if ($Labs.Length -gt 1) { $Pack = $true } else { Write-Host "-Pack is only for the Download All script"; exit 2 } }
         '^(-PackOnly|--pack-only)$' { if ($Labs.Length -gt 1) { $Pack = $true; $PackOnly = $true } else { Write-Host "-PackOnly is only for the Download All script"; exit 2 } }
-        '^--?dest$' { $i++; $Dest = [string]$args[$i] }
+        '^--?dest$' { $i++; $DlDir = [string]$args[$i] }
         '^(-h|--help|-\?)$' { Get-Content $MyInvocation.MyCommand.Path -TotalCount 21; exit 0 }
         default { Write-Host "Unknown option: $a (use --help)"; exit 2 }
     }
 }
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Root = if ($RootUp -eq 1) { Split-Path -Parent $Here } else { $Here }
-if (-not $Dest) {
+if (-not $DlDir) {
     $Parent = Split-Path -Parent $Root
-    $Dest = if ((Split-Path -Leaf $Parent) -eq $OsName) { $Parent } else { Join-Path (Join-Path $Root "Downloads") $OsName }
+    $DlDir = if ((Split-Path -Leaf $Parent) -eq $OsName) { $Parent } else { Join-Path (Join-Path $Root "Downloads") $OsName }
 }
-New-Item -ItemType Directory -Force -Path $Dest | Out-Null
-$Dest = (Resolve-Path -LiteralPath $Dest).Path
+New-Item -ItemType Directory -Force -Path $DlDir | Out-Null
+$DlDir = (Resolve-Path -LiteralPath $DlDir).Path
 $Fails = New-Object System.Collections.ArrayList
 $OnWindows = ($env:OS -eq "Windows_NT")
 $Curl = if ($OnWindows) { "curl.exe" } else { "curl" }
@@ -139,7 +139,7 @@ function Run([string[]]$cmd) {
     return ($LASTEXITCODE -eq 0)
 }
 function Get-One($rel, $url, $sha) {
-    $dest = Join-Path $Dest $rel
+    $dest = Join-Path $DlDir $rel
     if ((Test-Path -LiteralPath $dest) -and ((Get-Item -LiteralPath $dest).Length -gt 0)) { Write-Host "  present  $rel"; return }
     if ($DryRun) { Write-Host "  MISSING  $rel"; return }
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dest) | Out-Null
@@ -157,7 +157,7 @@ function Get-One($rel, $url, $sha) {
     [void]$Fails.Add($rel); Write-Host "  FAILED   $rel"
 }
 function Get-Index($page, $rx) {
-    foreach ($f in (Get-ChildItem -LiteralPath $Dest -File -ErrorAction SilentlyContinue)) {
+    foreach ($f in (Get-ChildItem -LiteralPath $DlDir -File -ErrorAction SilentlyContinue)) {
         if ($f.Name -match "^$rx$") { Write-Host "  present  $($f.Name)"; return }
     }
     if ($DryRun) { Write-Host "  MISSING  $rx (newest from $page)"; return }
@@ -178,7 +178,7 @@ function Pip-Base {
 }
 function New-TempDir { $t = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString()); New-Item -ItemType Directory -Path $t | Out-Null; return $t }
 function Get-PipSet($name, $folder, $indexes, $noDeps, $pkgs) {
-    $cacheDir = Join-Path $Dest ".prefetch"; $cache = Join-Path $cacheDir "$OsName-$name.tsv"
+    $cacheDir = Join-Path $DlDir ".prefetch"; $cache = Join-Path $cacheDir "$OsName-$name.tsv"
     if ($Refresh -or -not (Test-Path -LiteralPath $cache)) {
         if ($DryRun) { Write-Host "  MISSING  Python package set '$name' (the list comes from pip when you run without -DryRun)"; return }
         Write-Host "  asking pip for the files of '$name' ..."
@@ -215,7 +215,7 @@ function Get-PipSet($name, $folder, $indexes, $noDeps, $pkgs) {
 }
 function Pip-Check($pkgs) {
     $tmp = New-TempDir
-    $cmd = @($Py) + (Pip-Base) + @("--target", (Join-Path $tmp "t"), "--no-index", "--find-links", $Dest) + $pkgs
+    $cmd = @($Py) + (Pip-Base) + @("--target", (Join-Path $tmp "t"), "--no-index", "--find-links", $DlDir) + $pkgs
     $exe = $cmd[0]; $rest = $cmd[1..($cmd.Count - 1)]
     $out = & $exe @rest 2>&1 | Out-String
     $ok = ($LASTEXITCODE -eq 0)
@@ -234,7 +234,7 @@ function Docker-Items {
         if (-not (Want $e[0] $e[1])) { continue }
         $img = $e[2]; $plat = $e[3]
         $name = ($img -replace '[/:]', '_') + "_" + $plat.Split("/")[1] + ".tar"
-        $folder = if ($e[4] -eq ".") { $Dest } else { Join-Path $Dest $e[4] }
+        $folder = if ($e[4] -eq ".") { $DlDir } else { Join-Path $DlDir $e[4] }
         $dest = Join-Path $folder $name
         if (Test-Path -LiteralPath $dest) { Write-Host "  present  $name"; continue }
         if ($DryRun) { Write-Host "  MISSING  $name"; continue }
@@ -243,7 +243,7 @@ function Docker-Items {
             Move-Item -Force -LiteralPath "$dest.part" -Destination $dest
         } else { [void]$Fails.Add($name) }
     }
-    $store = Join-Path $Dest "ollama"; $todo = @()
+    $store = Join-Path $DlDir "ollama"; $todo = @()
     foreach ($e in $Ollama) {
         if (-not (Want $e[0] $e[1])) { continue }
         $model = $e[2]; $n, $tag = $model.Split(":", 2); if (-not $tag) { $tag = "latest" }
@@ -268,7 +268,7 @@ function Skip-File($name) {
     return $false
 }
 function Copy-Labs {
-    $dest = Join-Path $Dest "Ai-workshop"
+    $dest = Join-Path $DlDir "Ai-workshop"
     if ((Test-Path -LiteralPath $dest) -and ((Resolve-Path -LiteralPath $dest).Path -eq $Root)) { Write-Host "  The lab files are already in the download folder."; return }
     Write-Host "Lab files -> $dest"
     if ($DryRun) { return }
@@ -297,7 +297,7 @@ function Copy-Labs {
     Write-Host "  copied $n files"
 }
 
-Write-Host ("$Scope, ${OsName}: download folder $Dest" + $(if ($DryRun) { "  (dry run)" } else { "" }))
+Write-Host ("$Scope, ${OsName}: download folder $DlDir" + $(if ($DryRun) { "  (dry run)" } else { "" }))
 if (-not $Py) { Write-Host "Python 3 is not installed. Install Python 3.12 first (see the pre-work file)."; exit 1 }
 if ($Gpu -and $OsName -eq "MacOS") { Write-Host "macOS: the normal files use the Apple GPU (Metal). -Gpu adds nothing." }
 
@@ -317,4 +317,4 @@ if ($Pack) { Copy-Labs }
 Write-Host ""
 if ($DryRun) { Write-Host "Dry run: nothing was downloaded."; exit 0 }
 if ($Fails.Count -gt 0) { Write-Host ("Not complete. Failed: " + ($Fails -join ", ")); Write-Host "Run the script again. It continues where it stopped."; exit 1 }
-Write-Host "Complete. Everything for $Scope is in $Dest"
+Write-Host "Complete. Everything for $Scope is in $DlDir"
