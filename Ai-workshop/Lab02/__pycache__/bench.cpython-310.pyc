@@ -1,0 +1,650 @@
+o
+    ó0îjŠ‰  ã                   @   s
+  d Z ddlZddlZddlZddlZddlZddlZddl Z ddlZddl	Z	ddl
+Z
+ddl
+Z
+ddlZddl
+ZddlZddlZej ej e¡¡Ze	j dej edd¡¡ zddlZW n eyi   e	 d¡ Y nw ejZdZd d„ Zd	d
+„ Zd
+d„ ZG d
+d„ dƒZ G dd„ dƒZ!G dd„ dƒZ"dd„ dd„ dd„ dd„ dœZ#ddddddœZ$dZ%d d!„ Z&d"d#„ Z'd$d%„ Z(G d&d'„ d'ƒZ)d(d)„ Z*dGd*d+„Z+d,d-„ Z,dGd.d/„Z-d0d1„ Z.d2d3„ Z/d4Z0dHd6d7„Z1d8d9„ Z2d:d;„ Z3d<d=„ Z4d>d?„ Z5d@dA„ Z6dBdC„ Z7dDdE„ Z8e9dFkre8ƒ  dS dS )Iam  bench.py - Lab 2: benchmark models and harnesses.
+
+Runs the same prompts against one or more targets, checks each answer, and records per prompt
+and per session: the prompt, the response, the operating time, and the tokens (input, output,
+cache read, cache write, reasoning). Results stream to the terminal as they happen, to a JSONL
+file, and (with --live-html) to a web page that refreshes itself.
+
+Targets (--target, repeat it to compare several in one run):
+  harness:PATH                 a local model through the Lab 1 harness (GGUF, safetensors or ONNX)
+  ollama:MODEL                 Ollama's own API, e.g. ollama:qwen2.5:1.5b   (Part 2)
+  server:URL#MODEL             any OpenAI-compatible server, e.g. server:http://localhost:8080/v1#qwen
+  anthropic:MODEL  openai:MODEL  gemini:MODEL  copilot:MODEL      cloud APIs through the harness (Part 3)
+  cli:claude  cli:codex  cli:gemini  cli:copilot                   the official CLIs (Part 4)
+
+  python3 bench.py run --target harness:../lab1/models/qwen2.5-1.5b-instruct-q4_k_m.gguf --target ollama:qwen2.5:1.5b
+  python3 bench.py run --target harness:MODEL --gpu-layers -1 --label gpu       (then --label cpu without it)
+  python3 bench.py report results/*.jsonl --out report.html
+  python3 bench.py compare results/run-cpu.jsonl results/run-gpu.jsonl
+
+Standard library only, plus whatever the harness needs for the model you test.
+é    Nz..Úlab1zUbench.py needs harness.py from the lab1 folder next to this one (../lab1/harness.py).zIYou are a helpful assistant. Follow the format the user asks for exactly.c                 C   s   t jdd| t jd ¡ S )Nz<think>.*?(</think>|$)Ú )Úflags)ÚreÚsubÚSÚstrip)Útext© r
+   ú
+lab2/bench.pyÚ
+strip_think5   s   r   c              	   C   sœ   |   d¡}|dkrLd}t|t| ƒƒD ]-}|| | dk| | dk 7 }|dkr?zt | ||d … ¡W   S  ty>   Y  nw q|   d|d ¡}|dks	d S )Nú{éÿÿÿÿr   ú}é   )ÚfindÚrangeÚlenÚjsonÚloadsÚ
+ValueError)r	   ÚstartÚdepthÚir
+   r
+   r
+   Ú
+first_json9   s   
+ÿý÷
+r   c                      s°  t | ƒ}| ¡ ‰ |sdS d|v r=t d| dd¡¡}|r(t|d ƒt|d ƒkr=d d|d › d	|r8|d › fS d
+› fS d
+|v r`t‡ fdd
+„|d
+ D ƒƒs`d dd  ‡ fdd
+„|d
+ D ƒ¡ fS d|v r|t‡ fdd
+„|d D ƒƒs|d dd  |d ¡ fS d|v rŠt 	|d |¡sŠdS d|v rÄt
+|ƒ}t
+|tƒs™dS |d  
+¡ D ]$\}}t| |¡ƒ ¡ t|ƒ ¡ krÃd |› d| |¡›d|›f  S qŸd|v rÖtt d|¡ƒ|d krÖdS dS )z;Return (passed, reason). Every rule in the check must hold.)Nzno checkÚnumberz-?\d+(?:\.\d+)?ú,r   r   Fz	expected z, got z	no numberÚcontainsc                 3   ó    | ]	}|  ¡ ˆ v V  qd S ©N©Úlower©Ú.0Úw©Úlowr
+   r
+   Ú	<genexpr>R   ó   € zcheck_answer.<locals>.<genexpr>zmissing ú, c                 3   s     | ]
+}|  ¡ ˆ vr|V  qd S r   r    r"   r%   r
+   r
+   r'   S   s   € Úcontains_anyc                 3   r   r   r    r"   r%   r
+   r
+   r'   T   r(   z	none of: Úregex)Fzformat does not matchr   )Fzno JSON objectz is z
+, expected Ú
+max_sentencesz
+[.!?](\s|$))Fztoo long)TÚok)r   r!   r   Ú findallÚ replaceÚfloatÚallÚjoinÚanyÚsearchr   Ú
+isinstanceÚdictÚitemsÚstrÚgetr   ) r	   ÚcheckÚtÚnumsÚobjÚkÚvr
+   r%   r
+   Úcheck_answerH   s2   *"$"
+"ÿ r@   c                   @   s6   e Zd Zd
+dd„Zdd„ Zdd „ Zdd	„ Zd
+d
+„ Z dS )ÚLiveTc                 C   sB   ||o t j ¡ | _| _dt ¡ d df\| _ | _| _	| _
+d | _
+d S )Nr   F)ÚsysÚstderrÚisattyÚlabelÚ enabledÚtimeÚperf_counterÚpiecesÚt0ÚfirstÚstopÚthread)ÚselfrE   rF   r
+   r
+   r
+   Ú__init__h   s    
+z
+Live.__init__c                 C   s4   t  ¡ | _| jrtj| jdd| _ | j  ¡  d S d S )NT)ÚtargetÚdaemon)	rG   rH   rJ   rF   Ú	threadingÚThreadÚ_tickrM   r   ©rN   r
+   r
+   r
+   r   m   s
+   
+þz
+Live.startc                 C   s*   |  j d7  _ | jd u rt ¡ | _d S d S )Nr   )rI   rK   rG   rH   rU   r
+   r
+   r
+   Úpieces   s   
+ÿz
+Live.piecec                 C   sÀ   | j s^t ¡ | j }d}| jr&| jdkr&d| jtt ¡ | j dƒ d›d}| jr4d | j| j d›d	nd
+}t j 	d
+| j
+› d|d›d
+| jd›d|› |› d
+¡ t j 
+¡  t d¡ | j rd S d S )Nr   r   ú  gíµ ÷Æ°>z5.1fz	 pieces/sz  first token z.2fz sz  waiting for first tokenz
+  z6.1fz s  Ú5dz  piecesz   [Kgš™™™™™É?)
+rL   rG   rH   rJ   rK   rI   ÚmaxrB   rC   ÚwriterE   ÚflushÚsleep)rN   ÚelÚrateÚttftr
+   r
+   r
+   rT   x   s   $ 2
+
+øz
+Live._tickc                 C   s*   d| _ | jr| j ¡  tj d¡ d S d S )NTz
+[K)rL   rM   r2   rB   rC   rZ   rU   r
+   r
+   r
+   Údoneƒ   s
+   
+þz	Live.doneN)T)Ú__name__Ú
+__module__Ú__qualname__rO   r   rV   rT   r`   r
+   r
+   r
+   r
+   rA   g   s    
+
+rA   c                   @   ó    e Zd ZdZdd„ Zdd„ ZdS ) Ú
+HarnessTargetzCA model through harness.py (local files, a server, or a cloud API).c               
+   C   s  |  d¡\}}}tjdd d d |j|j|j|jd}|dkr!||_ n,|dkr3d|_|  d¡\|_	}|_ n|||_|_ |j
+ 
+|¡pK|j
+ 
+|d krIdn|¡|_t
+ |¡| _| jj› d| jj › | _| jj t| jd	d
+ƒ| _ | _tt
+jƒ| _| jj|j|j|jd
+ |jrŠ|j| jd< d S d S )
+Nú:Úauto)Ú backendÚmodelÚurlÚkey_fileÚ threadsÚ
+gpu_layersÚctxÚcacheÚ harnessÚserverú#Ú copilotÚgithubÚdeviceú?)Ú
+temperatureÚ
+max_tokensÚseedÚeffort)Ú	partitionÚargparseÚ	Namespacerl   rm   rn   ro   ri   rh   rj   Ú	key_filesr9   rk   rp   Úmake_backendÚnameÚ getattrru   r6   ÚDEFAULTSÚsettingsÚupdaterw   rx   ry   rz   ) rN   ÚspecÚaÚkindÚ_ÚrestÚnsr
+   r
+   r
+   rO      s&   ÿ&ÿzHarnessTarget.__init__c           
+   
+   C   s¨   d|dœd|dœg}t  | j| j¡}i g | j_}t ¡ d } }| j  t  ||¡|¡D ]}	|p2t ¡ }| 	|	¡ | 
+¡  q+t j
+| j||d |¡| |t ¡ t  
+¡ d}
+|
+S )NÚsystem©ÚroleÚ contentÚuserr   )Ú session)rp   Úapply_effortrƒ   rh   ÚusagerG   rH   ÚstreamÚwith_think_switchÚappendrV   Ú
+record_callr2   Ú Session)
+rN   r‹   ÚpromptÚliveÚmsgsÚsÚpartsrJ   rK   rV   Úrecr
+   r
+   r
+   Úcall¤   s   
+
+ÿzHarnessTarget.callN©ra   rb   rc   Ú __doc__rO   rž   r
+   r
+   r
+   r
+   re      s    re   c                   @   rd   ) ÚOllamaTargetzQOllama's native API. It reports token counts and its own timings for every reply.c                 C   s–   |  dd¡d | _|j d¡| _d| j› |j| _| _|j |j|j	dœ| _
+|j
+dkr1|j
+| j
+d < |jd ur<|j| j
+d< |jdkrFd	| _
+d S d
+| _
+d S )
+Nrf   r   ú/z ollama:)rw   Ú
+num_predictÚ num_ctxr   ry   Ú num_gpuzcpu (forced)zollama default)Úsplitri   Ú
+ollama_urlÚrstriprj   Úthinkr€   rw   rx   rn   Ú optionsry   Úollama_num_gpuru   )rN   r…   r†   r
+   r
+   r
+   rO   µ   s   
+
+zOllamaTarget.__init__c                 C   sb  | j d| jd|dœd|dœgdœ}| jd ur| j|d< tjj| jd  t  |¡ 	¡ dd	id
+}g d
+i }} }t
+ 
+¡ d }	}
+zltjj|dd
+Z}
+|
+D ]O}| 
+¡ sPqIt  | ¡ ¡}
+|
+ d¡rbt|
+d ƒ‚|
+ di ¡}| d¡r{| d7 } |
+pvt
+ 
+¡ }
+| ¡  | d¡r‘|
+p…t
+ 
+¡ }
+| |d ¡ | ¡  |
+ d¡r˜|
+}qIW d   ƒ n1 s£w   Y  W n tjjyÃ } ztd| j› d|› dƒ‚d }~ww t
+ 
+¡ }d}| d¡| d¡d d | dœ}| d¡pÞd
+| }d| j | j|d |¡t||	 dƒ|
+rút|
+|	 dƒnd t|dƒpd |d r|rt|d | dƒnd t| d ¡pd
+| dƒt| d!¡p(d
+| dƒ|d"d#œ
+S )$NTr‹   rŒ   r   )ri   r“   rª   Úmessagesr©   z	/api/chatzContent-Typezapplication/json)ÚdataÚ headersr   i„  )Ú timeoutÚerrorÚ messageÚthinkingr   rŽ   r`   zCould not reach Ollama at z: z!. Is it running? (Lab 1, Part 4a)g    eÍÍAÚprompt_eval_countÚ
+eval_count©ÚinputÚoutputÚ
+cache_readÚ
+cache_writeÚ	reasoningÚ
+eval_durationÚollamar   é   r·   Ú
+load_durationÚprompt_eval_durationzDreported by Ollama (cache not reported; reasoning = thinking chunks))
+rh   ri   ru   r˜   ÚresponseÚ
+operating_sÚ
+first_token_sÚ
+generate_sÚoutput_tok_per_sÚload_sÚ
+prompt_eval_sÚtokensÚtoken_source)ri   rª   r©   ÚurllibÚ requestÚ Requestrj   r   ÚdumpsÚencoderG   rH   Ú urlopenr   r   Údecoder9   ÚRuntimeErrorrV   r•   r°   ÚURLErrorru   r2   Úround)rN   r‹   r˜   r™   ÚbodyÚreqrœ   Úthinking_chunksÚfinalrJ   rK   ÚrÚrawÚdÚmsgÚeÚt1rŠ   rÇ   Úgen_sr
+   r
+   r
+   rž   À   sj   
+ÿ
+
+ÿ
+
+
+
+€ðÿ€€ÿÿ
+
+ $÷zOllamaTarget.callNrŸ   r
+   r
+   r
+   r
+   r¡   ²   s    
+r¡   c                  C   ó   dd| ddddg S ) NÚclaudeú-pú--output-formatr   z--permission-modeÚplanr
+   ©Úpr
+   r
+   r
+   Ú<lambda>ò   ó    rå   c                  C   s   dddddd| g S ) NÚcodexÚexecz--jsonz	--sandboxz	read-onlyz--skip-git-repo-checkr
+   rã   r
+   r
+   r
+   rå   ó   ræ   c                  C   rÞ   ) NÚgeminirà   rá   r   z--approval-moderâ   r
+   rã   r
+   r
+   r
+   rå   ô   ræ   c                 C   s   dd| ddgS )Nrs   rà   rá   r   r
+   rã   r
+   r
+   r
+   rå   õ   s    ©rß   rç   ré   rs   )Úinput_tokensÚ
+inputtokensÚ
+prompt_tokensÚprompttokencountr˜   )Ú
+output_tokensÚoutputtokensÚcompletion_tokensÚcandidatestokencountÚ
+candidates)Úcache_read_input_tokensÚcachereadinputtokensÚcached_input_tokensÚ
+cached_tokensÚcachedcontenttokencountÚcached)Úcache_creation_input_tokensÚcachecreationinputtokens)Úreasoning_output_tokensÚreasoning_tokensÚthoughtstokencountÚthoughtsrµ   )ÚresultrÀ   r	   rŽ   r±   c                 C   s‚   g }z
+|  t | ¡¡ W n- ty9   |  ¡ D ]}| ¡ }| d¡r6z
+|  t |¡¡ W q ty5   Y qw qY nw dd„ |D ƒS )z^The CLI's output as a list of JSON objects (one object, or one per line). Plain text gives [].r
+   c                 S   s   g | ]	}t |tƒr|‘qS r
+   )r5   r6   )r#   Úor
+   r
+   r
+   Ú
+<listcomp>  s    z%parse_json_stream.<locals>.<listcomp>) r•   r   r   r   Ú
+splitlinesr   Ú
+startswith)ÚoutÚobjsÚliner
+   r
+   r
+   Úparse_json_stream  s    
+ÿýþÿr  c                    s    i ‰ ‡ ‡fdd„‰ˆ| dƒ ˆ S )zMSearch nested JSON for token counts by name. The last usage block found wins.c                    sÊ   t | tƒrPi }|  ¡ D ]'\}}| ¡ }t ¡ D ]\}} || v r1t |ttfƒr1t |t ƒs1t|ƒ||< qq
+d|v s;d|v r@ˆ  |¡ |  	¡ D ]	}ˆ||d ƒ qDd S t | t
+ƒra| D ]
+}ˆ||d ƒ qWd S d S )Nr¶   r·   r   )
+r5   r6   r7   r!   ÚNAMESÚintr0   Úboolr„   ÚvaluesÚlist)r  r   Úblockr>   r?   ÚklÚfieldÚnames©ÚfoundÚwalkr
+   r
+   r    s&   
+ €þ
+ÿ
+þzfind_tokens.<locals>.walkr   r
+   )r=   r
+   r  r
+   Ú
+find_tokens  s   
+r  c                 C   s¬   |dkrdd„ | D ƒ}|r|d pdS t | ƒD ]<}tD ]}t| |¡tƒr3||  ¡ r3||     S q| d¡}t|tƒrStD ]}t| |¡tƒrR||     S q@qdS ) Nrç   c                 S   sB   g | ]}|  d ¡dkr|  di ¡  d ¡dv r|  di ¡  d¡‘qS )Útypezitem.completedÚitem)Ú
+agent_messageÚassistant_messager	   ©r9   )r#   rÛ   r
+   r
+   r
+   r  +  s    $ÿzfind_text.<locals>.<listcomp>r   r   r­   ) ÚreversedÚ	TEXT_KEYSr5   r9   r8   r   r6   )r  ÚtoolÚtextsr  r>   rÙ   r
+   r
+   r
+   Ú	find_text)  s"   €
+
+ÿ€r  c                   @   s   e Zd Zdd„ Zdd„ ZdS )Ú	CliTargetc                  C   s¬   |  dd¡d | _| jtvrt dd dd„ tD ƒ¡ ¡ d dd	d
+d
+œ| j }t  |¡s4t |› d¡ d
+| j› | jd| _| _	| _
+|j
+|j| _
+| _tjdd| _d S )Nrf   r   zcli target must be one of: r)   c                 s   s    | ] }d | V  qdS )úcli:Nr
+   ©r#   r>   r
+   r
+   r
+   r'   ?  ó   € z%CliTarget.__init__.<locals>.<genexpr>rß   rç   ré   rs   rê   z: is not installed or not on PATH. See Lab 1, Bonus Part 5.r!  Úcloudz
+bench-cli-)Úprefix)r¦   r  ÚCLI_COMMANDSrB   Úexitr2   ÚshutilÚwhichr€   ri   ru   Ú
+cli_timeoutrØ   r¯   Úkeep_rawÚtempfileÚ mkdtempÚ workdir)rN   r…   r†   Úexer
+   r
+   r
+   rO   <  s   
+
+ zCliTarget.__init__c           
+   
+      s@  |t kr|n|d | }t ¡ }ztjt| j |ƒ| j dd| jtj	d}W n tj
+y6   t
+d| j› dƒ‚w t ¡ } t|j
+ƒ}|rHt|| jƒn|j
+ ¡ }	i ‰ |D ]	}
+ˆ  t|
+ƒ¡ qQ| jdkr|r|d   d¡pji }
+|
+ d	¡pqd
+|
+ d
+¡pwd
+ |
+ d¡p~d
+ |
+ d
+¡|
+ d
+¡|
+ d¡d dœ‰ | jdkr©dˆ v r©ˆ  d¡d ur©ˆ d  ˆ d 7  < |jd
+krÄ|	sÄt
+|jp¶|j
+ ¡ dd … pÂd|j› ƒ‚| ¡  d| jd||	t| | dƒd d d ‡ fdd„tD ƒd| jdkrçdnd |jdœ}| jdkr|r|d   d¡|d< |d   d¡p	d
+d  pd |d!< | jr|j
+d"d … |d#< |S )$Nz
+
+T)ÚcwdÚcapture_outputr	   r¯   Ústdinztimed out after z4 s (it may be waiting for a sign-in or a permission)rß   r   r’   rë   r   rô   rú   rï   rµ   ré   rº   r·   iÔþÿÿz
+exit code Úclir$  r½   c                    s   i | ]}|ˆ   |¡“qS r
+   r  r"  ©Úur
+   r
+   Ú
+<dictcomp>e  ó    z"CliTarget.call.<locals>.<dictcomp>zreported by the CLIr   z! (format not verified; check raw))rh   ri   ru   r˜   rÀ   rÁ   rÂ   rÃ   rÄ   rÇ   rÈ   Úcli_exitÚtotal_cost_usdÚcli_cost_usdÚduration_api_msiè  Ú	cli_api_sià±ÿÿrØ   )ÚDEFAULT_SYSTEMrG   rH   Ú
+subprocessÚrunr&  r  r.  r¯   Ú DEVNULLÚTimeoutExpiredrÐ   r  Ústdoutr  r   r„   r  r9   Ú
+returncoderC   rV   rÒ   Ú
+TOKEN_KEYSr+  )
+rN   r‹   r˜   r™   ÚfullrJ   rä   rÜ   r  r	   r  r’   r   r
+   r4  r
+   rž   H  sP   
+ÿÿ
+ÿ
+ý (û "zCliTarget.callN)ra   rb   rc   rO   rž   r
+   r
+   r
+   r
+   r   ;  s    r   c                 C   sf   |   dd¡d }|dkrt| |ƒS |dkrt| |ƒS |dv r(t|  d dd¡|ƒS t d	| ›d
+¡ d S )
+Nrf   r   r   r¼   r3  ) rp   rq   Ú	anthropicÚopenairé   rs   rt   z github:zcopilot:zUnknown target z". See: python3 bench.py run --help) r¦   r¡   r   re   r/   rB   r'  )r…   r†   r‡   r
+   r
+   r
+   Ú
+make_targetq  s   
+
+rH  c              	      sv  dd„ | D ƒ}t dd„ |D ƒƒ}t dd„ |D ƒƒ}t| ƒt| ƒt|ƒ |||r.t|| dƒnd tt d d„ |D ƒƒdƒd	œ}tD ]‰ ‡ fd
+d„|D ƒ}|rPt |ƒnd |ˆ < q?td
+d„ |D ƒƒ} tdd„ |D ƒƒ}| rq| t| ƒd  nd |d
+< |r|t|ƒd  nd |d< |r”|d r”t||d d  dƒnd|d< |d pd|d p¢d }	|r®|	r®t|	| ƒnd |d< d }
+|r|d d g d d… \}
+}}
+}|
+d u rË|
+n|
+}
+|d u rÓ|
+n|}|d pÚd|d pßd |d påd }||
+ |d pïd|
+  |d p÷d|  |d pÿd|  d }
+dd„ |D ƒ}|
+d u r|rt |ƒ}
+|
+d ur"t|
+dƒnd |d< |
+d ur5|r5t|
+| dƒnd |d< |S )Nc                 S   s   g | ]}d |vr|‘qS )r°   r
+   ©r#   r×   r
+   r
+   r
+   r  €  r7  zsummarize.<locals>.<listcomp>c                 s   s    | ]
+}|  d ¡rdV  qdS )Úpassedr   Nr  rI  r
+   r
+   r
+   r'     s   € zsummarize.<locals>.<genexpr>c                 s   s"    | ]}|  d ¡durdV  qdS )rJ  Nr   r  rI  r
+   r
+   r
+   r'   ‚  ó   €  r½   c                 s   s    | ] }|d  V  qdS )rÁ   Nr
+   rI  r
+   r
+   r
+   r'   …  r#  é   )Ú promptsÚerrorsrJ  Ú checkedÚaccuracyrÁ   c                    s,   g | ]}|d    ˆ ¡dur|d    ˆ ¡‘qS )rÇ   Nr  rI  ©r>   r
+   r
+   r  ‡  s   , c                 s   s&    | ]}|  d ¡dur|d  V  qdS )rÂ   Nr  rI  r
+   r
+   r
+   r'   ‰  s   €$ c                 s   s"    | ]}|  d ¡r|d  V  qdS )rÄ   Nr  rI  r
+   r
+   r
+   r'   Š  rK  Úmedian_first_token_sÚmedian_output_tok_per_srÁ   é<   r   Úcorrect_per_minr¶   r·   Útokens_per_correcté   r¸   r¹   g    €„.Ac                 S   s$   g | ]}|  d ¡dur|  d ¡‘qS )r:  Nr  rI  r
+   r
+   r
+   r  ™  s   $ é   Úcost_usdÚcost_per_correct_usd)Úsumr   rÒ   rD  Úsorted)ÚrecsÚpricesr-   rJ  rO  r›   ÚvalsÚftÚtpsÚ	total_tokÚcostÚp_inÚp_outÚp_crÚp_cwÚfreshÚcli_costr
+   rQ  r
+   Ú	summarize  sD   þ*$&ÿÿ&rj  c                 C   s   |   d¡pd› d| d › S )NrE   ú-ú | rP   r  )r×   r
+   r
+   r
+   Ú	group_key¡  s   rm  c                 C   s:   | d u rdS |d urt | ttfƒr| d|› d›S t| ƒS )Nrk  Ú.Úf)r5   r
+  r0   r8   )ÚxÚndr
+   r
+   r
+   r?   ¥  s   .r?   c                 C   s$  d| v rt j d| d d›d| d d d… › d ¡ d S | d }d	d
+d
+dœ|  d
+¡ }t j d| d d›d|› dt|d ƒd›dt|d ƒd›dt|d ƒd›dt|d ƒd›dt|d ƒd›d| d d›dt|  d¡d ƒd›d!t|  d"¡ƒd›d#|  d
+¡d$ur‚d%n	d&|  d'd%¡ d( › d ¡ d S ))Nr°   rW   Úidú<9z ERROR  én   Ú
+rÇ   ÚPASSÚFAILz -- ©TFNrJ  ú z  in r¶   ú>6z out r·   z>5z	 cache r r¸   z w r¹   z reas rº   rl  rÁ   z6.2fz
+ s | first rÂ   rL  z s | rÄ   z tok/sFr   z  (Úwhyú))rB   rC   rZ   r9   r?   )r×   r;   Úmarkr
+   r
+   r
+   Ú	print_row«  s$   ,Jÿÿÿþþ$ýr~  c           	      C   s2  d}g }|   ¡ D ]]\}}t||r| |d d ¡nd ƒ}| ||d › d|d › t|d  dƒt|d	 ƒt|d
+ ƒt|d
+ ƒt|d ƒt|d
+ ƒt|d dƒt|d ƒt|d ƒt|d ƒt|d ƒf
+¡ qdd„ t|g|¢R Ž D ƒ} tƒ  |ft |ƒ D ]}td dd„ t|| ƒD ƒ¡ƒ q}tdƒ tdƒ d S )N)
+zlabel | targetÚpassútime sr¶   r·   z cache rz cache wÚreasonú first sútok/sz	right/minz	tok/rightú$r   rP   rJ  r¢   rO  rÁ   r   r¶   r·   r¸   r¹   rº   rR  rL  rS  rU  rV  rY  c                 S   s   g | ]
+}t d d„ |D ƒƒ‘qS )c                 s   s    | ]	}t t|ƒƒV  qd S r   )r   r8   ©r#   rp  r
+   r
+   r
+   r'   Á  r(   z1print_summary_table.<locals>.<listcomp>.<genexpr>)rY   )r#   Úcolr
+   r
+   r
+   r  Á  ó    z'print_summary_table.<locals>.<listcomp>rW   c                 s   s"    | ]\}}t |ƒ |¡V  qd S r   )r8   Úljust)r#   rp  Únr
+   r
+   r
+   r'   Ä  rK  z&print_summary_table.<locals>.<genexpr>zg
+right/min = correct answers per minute of operating time. tok/right = tokens spent per correct answer.zQfirst s and tok/s are medians. '-' means this target does not report that number.)	r7   rj  r9   r•   r?   ÚzipÚprintÚtupler2   )	Úgroupsr^  ÚheadÚrowsÚkeyr]  r›   r$   Úrowr
+   r
+   r
+   Úprint_summary_table·  s    :*
+ý r’  a  :root{--bg:#f6f4ee;--fg:#14213d;--card:#fff;--line:#d9d5c9;--acc:#137a86;--mute:#4a5568;--bad:#b42318;--good:#137a4a}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1b2d;--fg:#f2efe6;--card:#1a2b45;--line:#33496b;--acc:#2bb3c0;--mute:#a9b6c8;--bad:#f97066;--good:#47cd89}}
+body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,sans-serif}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:19px;margin:24px 0 8px}.mute{color:var(--mute)}
+.wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%}th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;white-space:nowrap}
+td.num{text-align:right;font-variant-numeric:tabular-nums}.pass{color:var(--good);font-weight:700}.fail{color:var(--bad);font-weight:700}
+.bar{display:inline-block;height:10px;background:var(--acc);border-radius:3px;vertical-align:middle;margin-right:6px}
+details{margin:6px 0}pre{white-space:pre-wrap;font-size:12px;margin:4px 0}Fc                    sþ  i }|D ]
+}|  t|ƒg ¡ |¡ q‡ fdd„| ¡ D ƒ} tdd„ |  ¡ D ƒdg ƒ}tdd„ |  ¡ D ƒdg ƒ}	d }
+|  ¡ D ]c\}
+}|
+dt  |
+¡|d	 |d
+ t|d
+ dƒt|d ƒt|d
+ ƒt|d ƒt|d ƒt|d ƒt|d dƒt	d|d p{d | ƒt|d ƒt	d|d p‹d |	 ƒt|d ƒt|d ƒt|d ƒf 7 }
+q?d }
+|D ]z}d|v rÊ|
+dt  t|ƒ¡t  |d ¡t  |d d d… ¡f 7 }
+q§|d }ddd d!œ| 
+d	¡ }|
+d"t  t|ƒ¡t  |d ¡|t|d
+ dƒt|d ƒt|d
+ ƒt|d ƒt|d ƒt|d ƒt| 
+d#¡ƒt  |d$ ¡t  |d% d d&… ¡f 7 }
+q§|r'd'nd }d(|› d)t  |¡› d*t
+› d+t  |¡› d,t|ƒ› d-|rFd.nd/t
+ d0¡ › d1|
+› d2|
+› d3}| d4 }t|d5d6d7
+}| |¡ W d   ƒ n	1 srw   Y  t || ¡ d S )8Nc              	      s2   i | ]\}}|t |ˆ rˆ  |d  d ¡ndƒ“qS )r   rP   N)rj  r9   )r#   r>   Úg©r^  r
+   r
+   r6  Û  s   2 zwrite_html.<locals>.<dictcomp>c                 S   ó   g | ]}|d  p	d‘qS )rS  r   r
+   ©r#   r›   r
+   r
+   r
+   r  Ü  r7  zwrite_html.<locals>.<listcomp>r   c                 S   r•  )rU  r   r
+   r–  r
+   r
+   r
+   r  Ý  r7  r   aS  <tr><td>%s</td><td class=num>%s/%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td><span class=bar style='width:%dpx'></span>%s</td><td><span class=bar style='width:%dpx'></span>%s</td><td class=num>%s</td><td class=num>%s</td></tr>rJ  rO  rÁ   r¶   r·   r¸   r¹   rº   rR  rL  éP   rS  r   rU  rV  rY  r°   zE<tr><td>%s</td><td>%s</td><td class=fail colspan=9>ERROR %s</td></tr>rr  éÈ   rÇ   z<span class=pass>PASS</span>z<span class=fail>FAIL</span>rk  rx  a  <tr><td>%s</td><td>%s</td><td>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td class=num>%s</td><td><details><summary>prompt and response</summary><pre>%s</pre><pre>%s</pre></details></td></tr>rÄ   r˜   rÀ   i   z'<meta http-equiv="refresh" content="2">z~<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">z
+<title>z</title><style>z</style></head><body>
+<h1>z</h1><p class="mute">z prompt runs. z(Live: this page reloads every 2 seconds.zWritten z%Y-%m-%d %H:%MaC  </p>
+<h2>Per session (one row per label and target)</h2><div class="wrap"><table><tr><th>label | target</th><th>pass</th><th>time s</th><th>input</th><th>output</th><th>cache read</th><th>cache write</th><th>reasoning</th><th>first token s</th><th>output tok/s</th><th>correct/min</th><th>tokens/correct</th><th>$</th></tr>aŠ  </table></div>
+<p class="mute">Operating time counts only the model's work. '-' means the target does not report that number. Medians for first token and tok/s.</p>
+<h2>Per prompt</h2><div class="wrap"><table><tr><th>label | target</th><th>prompt</th><th>check</th><th>time s</th><th>input</th><th>output</th><th>cache read</th><th>cache write</th><th>reasoning</th><th>tok/s</th><th></th></tr>z</table></div>
+</body></html>z.tmpr$   úutf-8©Úencoding)Ú
+setdefaultrm  r•   r7   rY   r  ÚhtmlÚescaper?   r
+  r9   ÚCSSr   rG   ÚstrftimeÚopenrZ   Úosr/   )Úpathr]  r^  Útitler™   r  r×   ÚsumsÚ max_tpsÚ max_cpmr  r>   r›   Údetailr;   r}  Ú refreshÚdocÚtmpro  r
+   r”  r
+   Ú
+write_html×  sh   4*  ûý	,ÿ:* ýþÿÿþþþýû ÿr¬  c                    sˆ   g }t | dd }|D ]}| ¡ }|r | d¡s | t |¡¡ q
+W d   ƒ n1 s+w   Y  |rBt|  d¡ƒ‰ ‡ fdd„|D ƒ}|S ) Nr™  rš  rr   r   c                    s   g | ]
+}|d  ˆ v r|‘qS )rr  r
+   )r#   rä   ©Úkeepr
+   r
+   r    s    z load_prompts.<locals>.<listcomp>)r¡  r   r  r•   r   r   Úsetr¦   )r£  Úonlyr  ro  r   r
+   r­  r
+   Úload_prompts  s   €ýÿr±  c                 C   s>   i }| pg D ]}|  d¡\}}}dd„ | d¡D ƒ||< q|S )Nú=c                 S   s   g | ]}t |ƒ‘qS r
+   )r0   r…  r
+   r
+   r
+   r    s    z parse_prices.<locals>.<listcomp>r   )Ú
+rpartitionr¦   )r7   r^  ÚitrP   rˆ   r<   r
+   r
+   r
+   Úparse_prices  s
+   rµ  c              
+   C   sè  i | _ | jp g D ]}| d¡\}}}|| j |< qt| j| jƒ}t}| j r?t| j dd} |  	¡ }W d   ƒ n1 s:w   Y  t
+j
+t
+j 
+t
+j | j¡¡dd t ¡ jd d… }t| jƒ}	g }
+| jD ]T}
+td |
+› | jrtd| j› d	nd
+ tjd
+ z t|
+| ƒ}W n tyž }
+ ztd|
+› tjd
+ W Y d }
+~
+qbd }
+~
+ww td
+|j› dt|ƒ› d| j› d tjd
+ | jrÔ|
+  d¡sÔz| !|dt"d| j# ƒ¡ W n	 t$yÓ   Y nw t%| jƒD ]Ý}|D ]Ø}| &d¡dkrét'j(n|}t"|d d›| j# ƒ}| )¡  zFz| !||d |¡}t*|d | &d¡ƒ\|d< |d< W n$ t$y: }
+ z|d d
+t+|
+ƒddd„ t,D ƒd œ}W Y d }
+~
+nd }
+~
+ww W | -¡  n| -¡  w | .|| j|
+|d |d! t/ 0d"¡d#œ¡ |
+ 1|¡ t| jd$dd} |  2t3j4|d%d&d' ¡ W d   ƒ n	1 sw   Y  t5|ƒ | j6r§| &d¡r§td(|d  7¡  8d'd)¡d d*…  tjd
+ | j9rµt:| j9|
+|	d+dd, qÝqÙqbi }|
+D ]}| ;t<|ƒg ¡ 1|¡ q¼|rät=||	ƒ td-t|
+ƒ› d.| j› d/| j› ƒ | j9ròt:| j9|
+|	d0ƒ d S d S )1Nr²  r™  rš  T)Úexist_oké   z
+== z
+  [label: ú]r   )Úfilez
+  skipped: z
+   device: z. z
+ prompts x rn  r!  z Say OK.z warm-upr‹   Útoolsrr  rs  r˜   rÀ   r:   rJ  r{  r   c                 S   s   i | ]}|d “qS r   r
+   r"  r
+   r
+   r
+   r6  B  ræ   zcmd_run.<locals>.<dictcomp>)r˜   rÀ   r°   rÁ   rÇ   r   z%Y-%m-%dT%H:%M:%S)r?  rE   rP   rr  ÚrepeatrG   r†   F)Úensure_asciiru  z      z 
+      i   zLab 2 benchmark (live))r™   z 
+Saved z records to z). Make a report: python3 bench.py report zLab 2 benchmark)>r~   rk   r{   r±  rM  r°  r=  Ú
+system_filer¡  Úreadr¢  Úmakedirsr£  Ú dirnameÚ abspathr  ÚuuidÚuuid4Úhexrµ  ÚpricerP   r‹  rE   rB   rC   rH  Ú
+SystemExitru   r   r»  Úwarmupr  rž   rA   ÚquietÚ	Exceptionr   r9   rp   Ú
+TOOL_PROMPTr   r@   r8   rD  r`   r„   rG   r   r•   rZ   r   rÌ   r~  Ú	show_textr   r/   Ú	live_htmlr¬  rœ  rm  r’  )r†   ÚkfÚprovrˆ   r£  rM  r‹   ro  Úrun_idr^  Úall_recsr…   ÚtgtrÛ   Úreprä   Úsysmsgr™   r   r  r×   r
+   r
+   r
+   Ú cmd_run  sŒ   
+ÿ 
+,€þ*ÿ$ÿ€ÿ€ÿ
+ÿ*€ëÿ
+"ÿrÔ  c              
+   C   sf   g }| D ],}t   |¡p
+|gD ]!}t|dd}|dd„ |D ƒ7 }W d   ƒ n1 s*w   Y  qq|S )Nr™  rš  c                 S   s   g | ]
+}|  ¡ rt |¡‘qS r
+   )r   r   r   )r#   r   r
+   r
+   r
+   r  ^  r‡  z read_records.<locals>.<listcomp>)Úglobr¡  )Úpathsr]  rä   r£  ro  r
+   r
+   r
+   Úread_recordsY  s   ÿ€ÿr×  c                 C   sj   t | jƒ}t| jƒ}t| j||| jƒ i }|D ]
+}|  t|ƒg ¡ 	|¡ qt
+||ƒ t
+d| j› dƒ d S )Nz 
+Wrote z. Open it in your browser.)r×  Úfilesrµ  rÅ  r¬  r  r¤  rœ  rm  r•   r’  r‹  )r†   r]  r^  r  r×   r
+   r
+   r
+   Ú
+cmd_reportb  s   
+
+
+rÙ  c                  C   s  g }| j D ]}t|gƒ}| ||t|ƒf¡ q|d d }tdd›ddd ›ddd	›dd
+d	›dd
+d	›ddd	›
+ƒ |D ]I\}}}|d
+ rK|d
+ |d
+  nd}ttj  |¡d›d|d d›d|d d›dt|d
+ dƒd	›dt|d dƒd	›dt|d ƒd	›d|d›dƒ q:tdƒ dS )zaTwo runs of the same prompts (for example CPU and GPU): how much faster or cheaper is the second?r   rL  r?  z<40ry  r  rz  r€  z>8r‚  rƒ  Ú speeduprÁ   rJ  z>3r¢   rO  z<2r   rR  rS  z>7.2frp  zg
+speedup = the first run's operating time divided by this run's. Same answers? Compare the pass column.N)	rØ  r×  r•   rj  r‹  r¢  r£  Úbasenamer?   ) r†   r  r£  r]  Úbaser›   Úspeedr
+   r
+   r
+   Ú
+cmd_comparem  s    
+
+6<ÿÿÿrÞ  c               	   C   sª  t jdtt jd} | jddd}|jdd d}|jd	d
+dd
+d |jd
+t j 	t
+d¡d |jddd |jdt
+ddd |jdddd |jdt j 	ddt 
+d¡ ¡d |jddd |jd d!d |jd"td#d$ |jd%t
+d&d$ |jd't
+d(d$ |jd)t
+d*d$ |jd+g d,¢d-d. |jd/d0d1„ d d2d |jd3t
+d4d5d |jd6t
+d7 |jd8d9d |jd:t
+d;d< |jd=d>d?d@ |jdAd
+dBd@ |jdCd
+dDd@ |jdEt
+dFd$ |jdGd>dHd@ |jdIdJdKdL |jdMd>dNd@ |jdOd>dPd@ |jtdQ |jdRdSd}|jdTdUdV |jddWd |jdXdYd |jdCd
+dZ |jtdQ |jd[d\d}|jdTdUdV |jtdQ |  ¡ }t|d]d ƒrNd^d_„ |jD ƒ|_| |¡ d S )`Nz%Lab 2 benchmark: models and harnesses)Ú
+descriptionÚepilogÚformatter_classÚcmdT)ÚdestÚrequiredr?  z+run the prompts against one or more targets)Úhelpz--targetr•   z%see the list above; repeat to compare)Úactionrä  rå  z	--promptsz
+prompts.jsonl)Ú defaultz--onlyz!comma-separated prompt ids to runz--repeatr   z run every prompt this many times)r  rç  rå  z --labelr   z$a name for this run, e.g. cpu or gpu)rç  rå  z--outÚ resultszbench-%s.jsonlz
+%Y%m%d-%H%M%Sz
+--live-htmlz=also write a self-refreshing web page with the results so farz
+--system-filezFa long system prompt (bench_context.md) to make prompt caching visiblez
+--temperatureg        )r  rç  z--max-tokensi   z--seedé*   z--ctxi   z--effort)r&   ÚmediumÚhighz.harness targets with Qwen3: thinking off or on)Ú choicesrå  z --thinkc                 S   s   |   ¡ dkS )NÚtruer    )rp  r
+   r
+   r
+   rå   Ž  s    zmain.<locals>.<lambda>zollama: true or falsez--gpu-layersr   z,harness targets: -1 = GPU, 0 = CPU (default)z	--threads)r  z--ollama-urlzhttp://localhost:11434z--ollama-num-gpuz8ollama: 0 forces the CPU; leave out to let Ollama decide)r  rå  z --cacheÚ
+store_truez4anthropic: mark the system prompt for prompt caching)ræ  rå  z
+--key-filez9PROVIDER=PATH, e.g. anthropic=~/.config/ai-keys/anthropicz --pricezDTARGET=IN,OUT[,CACHE_READ,CACHE_WRITE] in dollars per million tokensz
+--cli-timeouti,  z--rawz3cli targets: keep the raw CLI output in the resultsz
+--no-warmuprÇ  Ú
+store_false)rã  ræ  z
+--show-textzprint each responsez --quietzno live line)ÚfnÚreportz2make an HTML report from one or more results filesrØ  ú+)Únargsz
+report.htmlz --titlezLab 2 benchmark report)ræ  Ú comparez)compare runs, for example CPU against GPUrk   c              	   S   s@   g | ]}t j | d d¡d ¡d  t j | d d¡d ¡ ‘qS )r²  r   r   )r¢  r£  Ú
+expanduserr¦   r…  r
+   r
+   r
+   r  §  s   @ zmain.<locals>.<listcomp>)r|   ÚArgumentParserr    ÚRawDescriptionHelpFormatterÚadd_subparsersÚ
+add_parserÚadd_argumentr¢  r£  r2   ÚHEREr
+  rG   r   r0   Úset_defaultsrÔ  rÙ  rÞ  Ú
+parse_argsr   rk   rð  )Úapr   r×   rä   Úcr†   r
+   r
+   r
+   Úmain|  sZ   ÿ"r   Ú__main__r   )F):r    r|   rÕ  r  r   r¢  r   r(  r>  rB   r,  rR   rG   Úurllib.errorrÉ   Úurllib.requestrÂ  r£  rÀ  rÁ  Ú__file__rû  Úinsertr2   rp   Ú
+ImportErrorr'  rD  r=  r   r   r@   rA   re   r¡   r&  r	  r  r  r  r  r   rH  rj  rm  r?   r~  r’  rŸ  r¬  r±  rµ  rÔ  r×  rÙ  rÞ  r   ra   r
+   r
+   r
+   r
+   Ú<module>   s‚   ÿ&%@ü ú6
+"
+
+
+1
+<	
+
+/
+ÿ
