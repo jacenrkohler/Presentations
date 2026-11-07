@@ -1,0 +1,1003 @@
+o
+     ŒîjD ã                   @   s¬  d Z ddlZddlZddlZddlZddlZddlZddl Z ddlZddl	Z	ddl
+Z
+ddl
+Z
+ddlZddl
+Z
+ddlZddlZddlZddlZddlZddlZddlZddlZddlZddlmZmZ dddœdd dœdd	dœd
+œZd
+dd
+dddg ddddœ
+Zh d£Zh d£Zdd„ Zdd„ Z dd„ Z!dd„ Z"G dd„ dƒZ#G d d!„ d!ƒZ$d"d#„ Z%d$d%„ Z&d&d'„ Z'd(d)„ Z(d*d+„ Z)G d,d-„ d-ƒZ*G d.d/„ d/ƒZ+d0d1„ Z,G d2d3„ d3ƒZ-G d4d5„ d5ƒZ.G d6d7„ d7ƒZ/d8gd9fd:gd;fd<d=gd>fd?d@gdAfdBœZ0dCdD„ Z1dEdF„ Z2dGdH„ Z3dIdJ„ Z4dKZ5g dL¢Z6dMdN„ Z7d–dOdP„Z8G dQdR„ dRƒZ9G dSdT„ dTƒZ:e:ƒ Z;dUdV„ Z<dWdX„ Z=e;fdYdZ„Z>d—d[d\„Z?d]d^„ Z@d˜d_d`„ZAdaZBejCe
+jDejEe
+jFejGe
+jHejIe
+jJejKe
+jLejMe
+jNejOe
+jPejQe
+jRiZSdbdc„ ZTddde„ ZUdfZVd™dhdi„ZWdjdk„ ZXd–dldm„ZYdndo„ ZZdpdq„ Z[drZ\dsdt„ Z]dudv„ Z^dwdx„ Z_d–dydz„Z`d{d|„ Zad}d~„ Zbdd€„ Zcdd‚dƒd„dBœZdd…d†„ Zed‡dˆ„ Zfd‰dŠ„ Zgd‹dŒ„ ZhddŽ„ Zidd„ Zjd‘d’„ Zkd“d”„ Zlemd•krÔelƒ  dS dS )ša§
+  harness.py - a small LLM harness you can read in one sitting.
+
+A harness is the program around the model. The model only turns tokens into
+the next token. Everything else is the harness: the chat history, the system
+prompt, the settings, and (in later labs) the tools and the logs.
+
+  python3 harness.py chat  --model models/Qwen3-4B-Q4_K_M.gguf     talk to a local model (GGUF)
+  python3 harness.py chat  --model models/qwen2.5-0.5b-instruct     a safetensors folder (Hugging Face)
+  python3 harness.py chat  --model models/qwen2.5-0.5b-onnx         an ONNX folder (ONNX Runtime)
+  python3 harness.py ask   --model ... "Why is the sky blue?"       one question
+  python3 harness.py chat  --backend anthropic                      talk to a cloud model (pick from a list)
+  python3 harness.py serve --model ... --port 13370                 OpenAI-style server
+  python3 harness.py chat  --model ... --tools --tool-dir .         tool loop
+  python3 harness.py models --backend anthropic                     list the model ids your key can use
+  python3 harness.py image classify photo.jpg                       what is in this picture? (Part 2c)
+  python3 harness.py image generate "a robot reading a book"        draw a picture (Part 2c)
+
+Backends (--backend):
+  auto       the default: picks llamacpp, transformers or onnx from the --model path
+  llamacpp   load a GGUF file inside this process (needs llama-cpp-python)
+  transformers  load a Hugging Face safetensors folder (needs torch and transformers)
+  onnx       load an ONNX export (needs onnxruntime and transformers for the tokenizer)
+  server     any local OpenAI-compatible server: Ollama, KoboldCpp, llama.cpp
+             (--url http://localhost:11434/v1  --model qwen3:4b)
+  anthropic  Claude, with an Anthropic API key
+  openai     OpenAI, with an OpenAI API key
+  gemini     Google Gemini, with a Gemini API key
+  github     "Copilot" in Part 3d: GitHub Models, with a GitHub token. GitHub Copilot itself has
+             no public chat API; GitHub Models is how a GitHub account reaches models by API.
+  copilot    the same as github
+  echo       no model at all. Used to test the harness.
+
+API keys (checked in this order):
+  1. --key-file PATH   a file only you can read (mode 600). The harness refuses a file other users can read.
+  2. an environment variable: ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, GITHUB_TOKEN
+  3. a hidden prompt (nothing you type is shown or saved to shell history)
+There is deliberately no --api-key option: anything on the command line is visible to every
+user on the machine through `ps`, and is saved in shell history.
+Keys are held in memory only. They are never written to disk or printed.
+
+Standard library only for the cloud backends. Local backends need: llama-cpp-python (GGUF),
+torch + transformers (safetensors), onnxruntime + transformers (ONNX), diffusers (image generate).
+GPU: add --gpu-layers -1 (or a number of layers for GGUF). 0, the default, means CPU only.
+é    N)ÚBaseHTTPRequestHandlerÚThreadingHTTPServerFé   )ÚthinkÚ
+max_tokensi   Ti   )ÚlowÚmediumÚhighgffffffæ?gÍÌÌÌÌÌì?é(   é   éÿÿÿÿgš™™™™™ñ?i   z0You are a helpful assistant. Keep answers short.)
+Ú
+temperatureÚtop_pÚtop_kr   ÚseedÚrepeat_penaltyÚstopÚctxÚeffortÚsystem>   r   r   r   r   >   r   r
+   r   c                 C   s@   t | ƒ}| d¡}|r|jrt| d |d< t| d |d< |S )Nr   r   r   )ÚdictÚgetÚlocalÚEFFORT)ÚsettingsÚ backendÚsÚe© r   úR/sessions/rcw-01vjrmehp3outcq2pg2yysuu/mnt/AiLlmWorkshop/Lab02/../Lab01/harness.pyÚapply_effortc   s   
+
+r    c                 C   sZ   d|vr| S dd„ | D ƒ}t |ƒD ]}|d dkr*|d |d r"d nd |d<  |S q|S )	zDQwen3 reads /think or /no_think at the end of the last user message.r   c                 S   s   g | ]}t |ƒ‘qS r   )r   ©Ú.0Úmr   r   r   Ú
+<listcomp>p   ó    z%with_think_switch.<locals>.<listcomp>ÚroleÚuserÚ contentz  /thinkz
+ /no_think)Úreversed)Úmessagesr   Úoutr#   r   r   r   Úwith_think_switchl   s   ýr,   c           	   
+   c   sf   dd„ |   ¡ D ƒ}dd„ |D ƒ}z
+tjj| dd}W nt tjjyo } zF| ¡   dd ¡dd	… }|D ]}| |d
+¡}q3d
+} |j	dv rFd
+} n|j	dkrNd} n |j	dkrUd} t
+ 
+|› d|j	› d|› | › ¡ W Y d}~n%d}~w tjjt
+fy } zt
+ 
+d|› d|› ¡ W Y d}~nd}~ww | |D ]
+}|  dd ¡ ¡ V  q•W d  ƒ dS 1 s¬w   Y  dS )zFOpen a streaming HTTP request and yield decoded lines. Explain errors.c                 S   s    g | ]\}}|  ¡ d v r|‘qS ))Ú
+authorizationú	x-api-keyúx-goog-api-key)Úlower©r"   ÚkÚvr   r   r   r$   ~   ó     zhttp_lines.<locals>.<listcomp>c                 S   s$   g | ]}t |ƒd kr| dd¡‘qS )é   ú Bearer Ú )ÚlenÚ replace©r"   Úxr   r   r   r$      s   $ iX  ©Ú timeoutúutf-8r9   Né  z[key hidden]r7   )é‘  i“  za
+The key was refused. Check it is correct, has no extra spaces, and is allowed to use this model.é”  z?
+The model name was not found. Check the provider's model list.i­  z@
+Rate limit or no credit. Check the account's usage and billing.z returned HTTP ú: zCould not reach )Úheader_itemsÚurllibÚ requestÚ urlopenÚerrorÚ	HTTPErrorÚreadÚdecoder9   ÚcodeÚsysÚexitÚURLErrorÚConnectionErrorÚstrip)	ÚreqÚwhatÚ secretsÚrespr   ÚbodyÚsecÚhintÚrawr   r   r   Ú
+http_lines|   s6   €
+
+
+,€"€ÿÿ"ÿrY   c              	   c   s\    | D ](}|  d¡s
+q|dd…  ¡ }|dkr dS zt |¡V  W q ty+   Y qw dS )zJYield the parsed JSON of each 'data:' line in a server-sent-events stream.zdata:é   Nz[DONE])Ú
+startswithrP   ÚjsonÚloadsÚ
+ValueError)ÚlinesÚlineÚdatar   r   r   Ússe_json•   s   €
+ÿørb   c                   @   ó$   e Zd Zd\ZZdd„ Zdd„ ZdS ) Ú
+EchoBackend)ÚechoTc                 C   s   d\| _ | _d S )N)re   Úcpu)ÚmodelÚdevice©Úselfr   r   r   Ú__init__¦   s   zEchoBackend.__init__c                   c   s–    dd„ |D ƒd d }d|   d¡d |d  … }tdd	„ |D ƒƒt|ƒd
+d d
+d
+dœ| _t|ƒD ]\}}t d
+¡ ||t|ƒd k rDdnd V  q0d S )Nc                 S   s   g | ]
+}|d  dkr|‘qS )r&   r'   r   r!   r   r   r   r$   ª   ó    z&EchoBackend.stream.<locals>.<listcomp>r   r(   z(echo) You said: ú r   c                 s   s     | ]
+}t |d   ¡ ƒV  qdS ©r(   N)r8   Úsplitr!   r   r   r   Ú	<genexpr>­   s   € z%EchoBackend.stream.<locals>.<genexpr>r   zcounted (words)©ÚinputÚoutputÚ
+cache_readÚ
+cache_writeÚ	reasoningÚsourceg{®Gáz„?é   r7   ) ro   Úsumr8   ÚusageÚ	enumerateÚtimeÚsleep) rj   r*   r   ÚlastÚwordsÚiÚwr   r   r   Ústream©   s   €ÿ
+ þzEchoBackend.streamN© Ú__name__Ú
+__module__Ú__qualname__Únamer   rk   r‚   r   r   r   r   rd   £   ó    rd   c                   @   s6   e Zd Zd\ZZddd„Zdd „ Zdd	„ Z d
+d
+„ ZdS )
+ÚLlamaCppBackend)ÚllamacppTNr   c                 C   sâ   zdd l }ddl m} W n ty   t d¡ Y nw tj  |¡s*t d|› d¡ tj |¡| _	|| _ |p7d}|rWz| 
+¡ } W n
+ t
+yK   d} Y nw | sWtd tj
+d d}||||p_t ¡ |d	d
+| _|rld
+| _d S d| _d S )
+Nr   )ÚLlamazRllama-cpp-python is not installed. Run: python3 -m pip install -r requirements.txtzModel file not found: z.
+Run the prefetch script or download it first.TzmNote: this llama-cpp-python build is CPU only, so --gpu-layers is ignored. See Lab 1, Part 0e (GPU software).©ÚfileF)Ú
+model_pathÚn_ctxÚ	n_threadsÚn_gpu_layersÚ verboseÚgpurf   )Ú	llama_cppr‹   Ú
+ImportErrorrL   rM   ÚosÚpathÚexistsÚbasenamerg   Úllama_supports_gpu_offloadÚ	ExceptionÚprintÚstderrÚ	cpu_countÚllmrh   )rj   rŽ   r   Ú threadsÚ
+gpu_layersr”   r‹   Úokr   r   r   rk   ·   s4   ÿÿÿÿzLlamaCppBackend.__init__c                 C   s$   |rt | jj| d¡dddƒS dS )Nr>   F©Ú add_bosÚ specialr   )r8   rŸ   ÚtokenizeÚencode©rj   Útextr   r   r   Úcount_tokensÑ   s   $zLlamaCppBackend.count_tokensc           	      C   sØ   ddl m} | jj}| d¡}|sdS | j ¡ dkr(| j | j ¡ g¡  dd¡nd }| j ¡ dkr?| j | j ¡ g¡  dd¡nd }||||d|d	j	} t
+| d
+d
+¡ƒ 
+¡ d
+ko_|o^|  |¡ }| jj
+|  d¡|dd
+S )zWRender the chat template from the GGUF file (as llama-cpp-python does) and tokenize it.r   )ÚJinja2ChatFormatterztokenizer.chat_templateNr>   Úignorer7   )ÚtemplateÚ	eos_tokenÚ	bos_token)r*   ztokenizer.ggml.add_bos_tokenÚtrueTr£   )Úllama_cpp.llama_chat_formatr«   rŸ   Úmetadatar   Ú	token_bosÚ
+detokenizerJ   Ú	token_eosÚpromptÚstrr0   r[   r¦   r§   )	rj   r*   r«   ÚmetaÚtmplÚbosÚeosr¶   r¤   r   r   r   Ú_prompt_tokensÔ   s   
+..(zLlamaCppBackend._prompt_tokensc           
+   
+   c   sš   d ddd dddœ }| _ zCt| jjd | jj… ƒ}|  |¡}|d urOt|ƒ|d< d}t ||d d… ƒD ]\} }| |kr> n|d7 }q4||d < t|ƒ| |d< W n	 tyY   Y nw g }	| jj	|d	|d
+ |d
+ |d |d
+ |d |d dk rxd n|d |d p€d d	D ]}
+|
+d d  
+di ¡ 
+d¡}
+|
+rœ|	 
+|
+¡ |
+V  qƒd |	¡}|  
+|¡|d< |  
+t|ƒ¡|d< |d d u rËt| jj|d  dƒ|d< d|d< d S d S )Nr   Ú countedrq   rr   r   rx   rt   ru   Tr
+   r   r   r   r   r   r   )	r*   r‚   r
+   r   r   r   r   r   r   Ú choicesÚdeltar(   r7   rs   rv   zcounted (input estimated)rw   )rz   ÚlistrŸ   Ú
+_input_idsÚn_tokensr¼   r8   Úzipr›   Úcreate_chat_completionr   ÚappendÚjoinrª   Ú
+think_textÚmax)
+rj   r*   r   ÚuÚprevÚnewÚsharedr;   Úyr©   ÚchunkÚpiecer+   r   r   r   r‚   á   sN   €ÿ
+
+€ÿ 
+ü
+€
+þzLlamaCppBackend.stream)Nr   )	r„   r…   r†   r‡   r   rk   rª   r¼   r‚   r   r   r   r   r‰   ´   s    
+
+r‰   c                 C   s   | r
+t | ƒd d S dS )zZAbout 4 characters per token for English text. Used only when nothing better is available.é   é   r   ©r8   )r©   r   r   r   Úestimate_tokens   s   rÓ   c                 C   s,   d| vrdS |   dd¡d }|  dd¡d S )zYThe reasoning part of a reply: text inside <think>...</think> (Qwen3, DeepSeek-R1 style).z <think>r7   rx   ú</think>r   )ro   )r©   rU   r   r   r   rÇ     s   rÇ   c                 C   sJ   ddl }| r#|j ¡ r
+dS t|jddƒr|jj ¡ rdS tdt jd d S )zGPick a torch device: a GPU if asked for and present, otherwise the CPU.r   NÚcudaÚmpsz5Note: no GPU found by torch, so this runs on the CPU.rŒ   rf   )	ÚtorchrÕ   Úis_availableÚ getattrÚbackendsrÖ   rœ   rL   r   )Úwantr×   r   r   r   Ú
+gpu_device  s   
+rÜ   c                 #   s¼    |s
+| E dH  dS dt dd„ |D ƒƒ‰ }| D ]<}ˆ |7 ‰ t‡ fdd„|D ƒdd }|dkr?ˆ d|… r<ˆ d|… V   dS tˆ ƒ|krTˆ d|
+ … V  ˆ |
+ d… ‰ qˆ r\ˆ V  dS dS )	zHYield text pieces, but end the reply as soon as a stop sequence appears.Nr7   c                 s   s    | ] }t |ƒV  qd S ©NrÒ   r:   r   r   r   rp   %  ó   € zcut_at_stop.<locals>.<genexpr>c                 3   s"    | ]}|ˆ v rˆ   |¡V  qd S rÝ   ©Úfindr:   ©Úbufr   r   rp   (  s   €  r   ©Ú defaultr   )rÈ   Úminr8   )ÚpiecesÚstopsÚkeepÚpÚhitr   rá   r   Ú
+cut_at_stop   s&   €
+€
+ÿrë   c                  C   sf   t j | ¡r| nt j | ¡}|t j |¡fD ]}t j t j |d¡¡r'|  S qt  d| › d¡ dS )zTThe folder that holds config.json and the tokenizer for a safetensors or ONNX model.ú
+config.jsonzNo config.json next to zD. A Hugging Face model needs its whole folder, not just the weights.N)r–   r—   ÚisdirÚ dirnamer˜   rÆ   rL   rM   )r—   ÚfolderÚdr   r   r   Úfind_hf_folder4  s   ÿrñ   c                   @   s2   e Zd ZdZd\ZZd
+dd„Zd d„ Z d	d
+„ ZdS )ÚTransformersBackendz=A Hugging Face model in safetensors format, run with PyTorch.)ÚtransformersTr   Nc                 C   sæ   zdd l }ddlm}m} W n ty   t d¡ Y nw t |ƒ} |r(| |¡ |t	|ƒ| _ | _
+| j
+| _
+tj
+ tj
+ | ¡¡| _|j| dd| _|j| dd| j
+dkrU|jn|jd  | j
+¡| _| j ¡  | j
+dkrnd| _
+d S d| _
+d S )	Nr   )ÚAutoModelForCausalLMÚ
+AutoTokenizerzXThis backend needs torch and transformers: python3 -m pip install -r requirements-hf.txtT©Úlocal_files_onlyrf   )r÷   Úuse_safetensorsÚdtyper“   )r×   ró   rô   rõ   r•   rL   rM   rñ   Úset_num_threadsrÜ   rh   Útorch_devicer–   r—   r™   Ú abspathrg   Úfrom_pretrainedÚtokÚ float16Ú float32ÚtorŸ   Úeval)rj   r—   r¡   r    r×   rô   rõ   rï   r   r   r   rk   A  s*   ÿ
+þþ
+zTransformersBackend.__init__c                 C   ó   |rt | jj|ddƒS dS ©NF)Úadd_special_tokensr   ©r8   rþ   r§   r¨   r   r   r   rª   U  ó   z TransformersBackend.count_tokensc              
+   #   sv   ddl m} ˆj}ˆjj|ddd ˆj¡}|ˆjddd}|d  dkr,|  |d  ¡ |d dk} t|| 	|¡|d	 | |d
+ |ˆjj
+pGˆjj
+d
+ ‰ | rZˆ j|d |d |d
+ d i ‰‡ ‡‡fdd„}t
+j|dd}	|	 ¡  g }
+t||d ƒD ]
+}
+|
+ |
+¡ |
+V  qx|	jdd t|jd ƒ}dˆv rŸtˆd jd ƒ| n ˆ d |
+¡¡}
+||
+d|ˆ td |
+¡ƒ¡ddœˆ_d S )Nr   )ÚTextIteratorStreamerTÚpt)Úadd_generation_promptÚreturn_tensors)Ú
+skip_promptÚskip_special_tokensr   r
+   r   r   ) Ú	input_idsÚattention_maskÚmax_new_tokensÚ	do_sampleÚrepetition_penaltyÚstreamerÚpad_token_idr   r   )r
+   r   r   c                      s   ˆj jdi ˆ ¤Žˆd< d S )Nr+   r   )rŸ   Úgenerater   ©ÚkwÚresultrj   r   r   Úrung  ó   z'TransformersBackend.stream.<locals>.run)ÚtargetÚdaemonr   rZ   r<   rx   r+   r7   r½   rq   )ró   r  r×   rþ   Úapply_chat_templater  rû   Ú
+manual_seedr   Ú	ones_liker  Úeos_token_idÚupdateÚ	threadingÚThreadÚstartrë   rÅ   rÆ   ÚintÚshaperª   rÇ   rz   )rj   r*   r   r  r×   Úidsr  Úsampler  Útr©   rÏ   Ún_inÚn_outr   r  r   r‚   X  s8   €
+þ
+.ÿzTransformersBackend.stream©r   N)	r„   r…   r†   Ú __doc__r‡   r   rk   rª   r‚   r   r   r   r   rò   =  s    
+rò   c                   @   s:   e Zd ZdZd\ZZd
+dd„Zd d„ Z d	d
+„ Zd
+d„ Z	dS )Ú
+OnnxBackendzªAn ONNX export of a chat model, run with ONNX Runtime. The generation loop is written
+    out here so you can see it: run the graph, pick one token, feed it back, repeat.)ÚonnxTr   Nc              	      s¢  zdd l }ddlm} W n ty   t d¡ Y nw dd l}|| _ tj	 
+|¡rQdd l
+} t|  
+tj	 
+|d¡¡|  
+tj	 
+|dd¡¡ ƒ}|sMt d|› ¡ |d }t|ƒ}	tj	 |	¡}
+tj	 |
+¡dkritj	 |
+¡}
+tj	 |
+¡| _|j|	d d| _ttj	 
+|	d	¡d
+d
+
+}
+t |
+¡}W d   ƒ n1 s“w   Y  | d¡| _tt| jtƒr¨| jn| jgƒ| jjhB | _d
+g}
+|r×| ¡ ‰ ‡ fdd„dD ƒ}|rÐ|d d… |
+ }
+n tdtj d | !¡ }|rà||_"|j#|||
+d| _$| j$ %¡ d d
+krôdnd| _&dd„ | j$ '¡ D ƒ| _(dd„ | j$ )¡ D ƒ| _*dd„ | j(D ƒ| _+| d| d¡¡}| d¡p,|d |d  | _,|| _-| j+r>| j(| j+d  j.nd}d |v rK|j/| _1d S |j0| _1d S )!Nr   )rõ   z[This backend needs onnxruntime and transformers: python3 -m pip install -r requirements.txtú*.onnxr/  zNo .onnx file in Trö   rì   r>   ©Úencodingr   ÚCPUExecutionProviderc                    s   g | ]}|ˆ v r|‘qS r   r   ©r"   ré   ©Úhaver   r   r$   —  ó    z(OnnxBackend.__init__.<locals>.<listcomp>)ÚCUDAExecutionProviderÚDmlExecutionProviderÚCoreMLExecutionProviderrx   zgNote: this onnxruntime has no GPU provider, so this runs on the CPU. See Lab 1, Part 0e (GPU software).rŒ   )Ú	providersr“   rf   c                 S   s   i | ]}|j |“qS r   ©r‡   ©r"   r€   r   r   r   Ú
+<dictcomp>¢  r%   z(OnnxBackend.__init__.<locals>.<dictcomp>c                 S   s   g | ]}|j ‘qS r   r<  )r"   Úor   r   r   r$   £  s    c                 S   s   g | ]	}|  d ¡r|‘qS )Úpast_key_values©r[   ©r"   Únr   r   r   r$   ¤  ó    Únum_key_value_headsÚnum_attention_headsÚhead_dimÚ
+hidden_sizez
+tensor(float)rÿ   )2Ú
+onnxruntimeró   rõ   r•   rL   rM   ÚnumpyÚnpr–   r—   rí   ÚglobÚsortedrÆ   rñ   rü   r™   rî   rg   rý   rþ   Úopenr\   Úloadr   r»   ÚsetÚ
+isinstancerÀ   r   Úget_available_providersrœ   r   ÚSessionOptionsÚintra_op_num_threadsÚInferenceSessionÚsessÚ
+get_providersrh   Ú
+get_inputsÚinputsÚ
+get_outputsÚ outputsÚpastrG  Úkv_headsÚtyperÿ   r   Úkv_dtype)rj   r—   r¡   r    Úortrõ   rK  rL  Úcandsrï   Úname_dirÚfÚcfgr;  r“   ÚsoÚheadsÚ kv_typer   r5  r   rk   |  s^   ÿ.ÿ*ÿ"zOnnxBackend.__init__c                 C   r  r  r  r¨   r   r   r   rª   «  r   zOnnxBackend.count_tokensc           
+   	   C   sP  | j }| |j¡}|d r3|d dkr3|r3| t|ƒ¡}|| } | | dk| |d  | |d  ¡||< |d dkr?t|  ¡ ƒS ||d  }|d re|d dkre| |¡t	|d |j
+ƒ
+  }|j
+
+ |||k < | || 
+¡  ¡}	|	|	 ¡  }	| |	
+ ¡}
+|
+d t| | |	|
+ ¡|d ¡ƒd  … }
+| |	¡}|	|
+ ||
+< t|j|	j
+|| ¡  dƒS )	Nr   ç      ð?r   r
+   r   r   rx   )ré   )rK  ÚastypeÚ float64ÚarrayrM  Úwherer%  ÚargmaxÚsortrå   ÚsizeÚinfÚexprÈ   ry   Ú argsortÚsearchsortedÚcumsumÚ
+zeros_likeÚchoice)
+rj   Úlogitsr   ÚseenÚrngrK  ÚidxÚvalsÚkthré   Úorderrè   Úqr   r   r   Ú _sample®  s&   &*
+zOnnxBackend._samplec               
+   #   s   ˆ j ‰ ˆ j ˆd dk rd nˆd ¡‰ˆ jj|dd}t|dƒr%|d }t|ƒ}‡ ‡ fd d„ˆ j D ƒ‰|t|ƒ‰‰	t	|ƒg d	‰‰‰‡ ‡‡‡‡‡‡‡ ‡‡	f
+d
+d
+„}g }t
+|ƒ ˆd ƒD ]
+}| 
+|¡ |V  q^t|ƒtˆƒdt|ƒˆ  t
+d	 |¡ƒ¡d
+dœˆ _d S )Nr   r   T)r
+  Úkeysr  c                    s*   i | ]}|ˆ j d ˆjdˆjfˆjd“qS )rx   r   ©rù   )Úzerosr]  rG  r_  rB  )rK  rj   r   r   r>  Ê  ó   * z&OnnxBackend.stream.<locals>.<dictcomp>r7   c                  3   sJ   t ˆd ƒD ]›} dˆjˆ	gˆjdi}dˆjv r%ˆjdˆ
+fˆjd|d< dˆjv r?ˆjˆ
+tˆ	ƒ ˆ
+ˆjdd d d …f |d< |  ˆ¡ tt	ˆj
+ˆj
+ ˆj
+|¡ƒƒ‰ ˆ 
+ˆ d  d ˆˆ ˆ¡}|ˆjv rf d S ‡ fd	d
+„ˆjD ƒ‰ˆ  |¡ ˆ |¡ ˆjjˆd
+d}t|ƒtˆƒkrš| d
+¡sš|tˆƒd … V  |‰|gˆ
+d ‰	‰
+q d S )Nr   r  r  r  rx   Úposition_idsrw  )r   r   c                    s   i | ]
+}|ˆ |  d d¡ “qS )r@  Ú present)r9   rB  ©Úresr   r   r>  Û  ó    z6OnnxBackend.stream.<locals>.pieces.<locals>.<dictcomp>T)r
+  u   ï¿½)Úrangerk  Úint64rY  ÚonesÚaranger8   r!  r   rÃ   r[  rV  r  r  r»   r\  ÚaddrÅ   rþ   rJ   Úendswith)Ú_ÚfeedÚnxtr©   ©
+rK  Ú out_idsr\  Ú printedry  r   rx  rj   Ústep_idsÚtotalr†  r   ræ   Î  s*   €
+
+*
+
+
+
+îz"OnnxBackend.stream.<locals>.piecesr   r½   rq   )rK  ÚrandomÚ
+default_rngrþ   r  Ú hasattrrÀ   r\  r8   rP  rë   rÅ   rª   rÇ   rÆ   rz   ) rj   r*   r   r'  ræ   r©   rÏ   r   r’  r   r‚   Ã  s$   € 
+
+ÿzOnnxBackend.streamr,  )
+r„   r…   r†   r-  r‡   r   rk   rª   r  r‚   r   r   r   r   r.  w  s    
+/r.  c                  C   sö   ddl }| s
+t d¡ tj | ¡st d| › d¡ |  ¡   d¡s1tj | ¡r3|  tj 	| d ¡¡r3dS |  ¡   d	¡sUtj | ¡rW|  tj 	| d
+¡¡sU|  tj 	| d
+d
+¡¡rWd
+S |  ¡   d¡sntj | ¡rp|  tj 	| d
+¡¡rpdS t d| › d¡ dS )zAauto: choose a local backend from what the --model path contains.r   Nz–Give a model with --model: a .gguf file, a safetensors folder, or an ONNX folder.
+For a cloud model add --backend anthropic, openai, gemini or github.z
+Not found: z-. For a cloud or server model, add --backend.z.ggufú*.ggufrŠ   z.onnxr0  r/  z.safetensorsz
+*.safetensorsró   zCannot tell what kind of model z is. Use --backend llamacpp, transformers or onnx.
+This harness does not load .bin/.pt pickle files: loading one can run code hidden inside it.)
+rL  rL   rM   r–   r—   r˜   r0   rŽ  rí   rÆ   )r—   rL  r   r   r   Údetect_backendì  s   
+.D.r›  c                   @   s"   e Zd ZdZd
+dd„Zd d„ Zd	S )
+ÚOpenAICompatBackendz^Anything that speaks the OpenAI chat API: Ollama, KoboldCpp, llama.cpp, OpenAI, GitHub Models.ÚnoneTú/chat/completionsc                   C   sB   ||| _ | _|r
+dnd| _| d¡|||f\| _| _| _| _ d S )NÚserverÚcloudú/)r‡   r   rh   ÚrstripÚurlrg   Úkeyr—   ) rj   r‡   r£  rg   r¤  r   r—   r   r   r   rk     s   &zOpenAICompatBackend.__init__c                  c   s†   | j |d|d |d dœ}|d || jdkrd nd< |d r%|d |d< |d	 d
+kr1|d	 |d	< d
+di|d< tjj| j| j t  |¡ 	¡ d
+d| j
+ dœd}d d d d d ddœ }| _
+g g }} tt
+|| jƒƒD ]}| dg ¡D ])}	|	 d¡pxi }
+|
+ d¡p‚|
+ d¡}
+|
+rŠ|  |
+¡ |
+ d¡}|r™| |¡ |V  qp| d¡}
+|
+rÇ|
+ d¡|d< |
+ d¡|d< |
+ d¡pµi  d¡|d< |
+ d ¡pÁi  d!¡|d< | d"¡}|r| d#¡d urÜ|d# |d< | d$¡d ur|d$ |d%< |d d u r|d$ | d#¡púd
+ |d< | d&¡|d< qh|d d u r| rtd' | ¡ƒ|d< d(|d)< |d d u rAtd* d+d,„ |D ƒ¡ƒ|d< td' |¡ƒ|d< d-|d)< d S d S ).NTr
+   r   )rg   r*   r‚   r
+   r   r   ÚopenaiÚmax_completion_tokensr   r   r   Ú
+include_usageÚstream_optionsúapplication/jsonr6   )úContent-TypeÚ
+Authorization©ra   Ú headersÚreportedrq   r¾   r¿   Úreasoning_contentrv   r(   rz   Ú
+prompt_tokensrr   Úcompletion_tokensrs   Úprompt_tokens_detailsÚ
+cached_tokensrt   Úcompletion_tokens_detailsÚreasoning_tokensÚ timingsÚ cache_nÚprompt_nru   Ú
+predicted_nr7   zreported (reasoning estimated)rw   rm   c                 s   ó    | ] }|d  V  qdS rn   r   r!   r   r   r   rp   4  rÞ   z-OpenAICompatBackend.stream.<locals>.<genexpr>z$estimated (the server sent no usage))rg   r‡   rD   rE   Ú Requestr£  r—   r\   Údumpsr§   r¤  rz   rb   rY   r   rÅ   rÓ   rÆ   )rj   r*   r   rU   rQ   rÉ   r©   ÚthinkingÚobjÚchr¿   r   rÏ   ÚusÚtmr   r   r   r‚     sj   €ÿþÿ
+
+
+
+€
+
+€ýzOpenAICompatBackend.streamN)r  Trž  )r„   r…   r†   r-  rk   r‚   r   r   r   r   rœ  þ  s    
+rœ  c                   @   s&   e Zd Zd\ZZddd„Zdd„ Zd S )	ÚAnthropicBackend)Ú	anthropicFFc                 C   s    |||df\| _ | _| _| _d S ©Nr   )rg   r¤  Úcacherh   )rj   rg   r¤  rÅ  r   r   r   rk   <  ó    zAnthropicBackend.__init__c           
+   	   c   sÀ   d  dd„ |D ƒ¡}dd„ |D ƒ}| j|d d |tt|d d	ƒd
+ƒd
+œ}|r7| jr3d|d
+didœgn||d< |d rA|d |d< d d ddd ddœ }| _tj jdt	 
+|¡ 
+¡ d| jddœd} t
+t| dƒƒD ]v}| d
+¡dkrž| di ¡ di ¡}	|	 d¡p€d|d < |	 d!¡p‰d|d"< |	 d#¡p’d|d   |d"  |d$< n| d
+¡d%kr³| di ¡ d&|d' ¡|d'< | d
+¡d(krÉ| d)i ¡ d¡}
+|
+rÈ|
+V  qg| d
+¡d*krÝt d+t	 
+| d*¡¡ ¡ qgd S ),NÚ
+c                 s   ó$    | ]
+}|d  dkr|d V  qdS ©r&   r   r(   Nr   r!   r   r   r   rp   @  ó   €" z*AnthropicBackend.stream.<locals>.<genexpr>c                 S   s   g | ]
+}|d  dkr|‘qS )r&   r   r   r!   r   r   r   r$   A  rl   z+AnthropicBackend.stream.<locals>.<listcomp>r   Tr
+   ç        rh  )rg   r   r‚   r*   r
+   r©   r^  Ú	ephemeral)r^  r©   Ú
+cache_controlr   r   Ústop_sequencesr   r®  rq   z%https://api.anthropic.com/v1/messagesr©  ú
+2023-06-01)rª  r.   úanthropic-versionr¬  zapi.anthropic.comÚ
+message_startÚ messagerz   Úcache_read_input_tokensrt   Úcache_creation_input_tokensru   Úinput_tokensrr   Ú
+message_deltaÚ
+output_tokensrs   Úcontent_block_deltar¿   rG   zAnthropic error: )rÆ   rg   rå   rÈ   rÅ  rz   rD   rE   r»  r\   r¼  r§   r¤  rb   rY   r   rL   rM   )
+rj   r*   r   r   ÚmsgsrU   rÉ   rQ   r¾  ÚmurÏ   r   r   r   r‚   ?  sJ   €ý ÿÿþ$€€òzAnthropicBackend.streamN)Frƒ   r   r   r   r   rÂ  9  s    
+rÂ  c                   @   rc   ) Ú
+GeminiBackend)ÚgeminiFc                 C   s   ||d| _ | _| _d S rÄ  )rg   r¤  rh   )rj   rg   r¤  r   r   r   rk   f  r  zGeminiBackend.__init__c                  c   s~   d  dd„ |D ƒ¡}dd„ |D ƒ}|d |d  |d |d	 d
+œ}|d
+ r+|d
+ |d< ||d
+œ}|r;dd|igi|d< tjj| jdd} tjjd| › dt  |¡ 	¡ d| j
+dœd}d d d d d ddœ }	| _
+tt
+|dƒƒD ]O}
+|
+ d¡}
+|
+rœ|
+ d¡|	d< |
+ dd¡|	d < |
+ d!d¡|	d"< |
+ d#¡p“d|	d" p˜d |	d$< |
+ d%g ¡D ]}| d&i ¡ dg ¡D ]}
+|
+ d¡rº|
+d V  q®q¢qmd S )'NrÇ  c                 s   rÈ  rÉ  r   r!   r   r   r   rp   j  rÊ  z'GeminiBackend.stream.<locals>.<genexpr>c                 S   s<   g | ]}|d  dkr|d  dkrdndd|d igd œ‘qS )r&   r   Ú	assistantrg   r'   r©   r(   )r&   Úpartsr   r!   r   r   r   r$   k  s    þÿz(GeminiBackend.stream.<locals>.<listcomp>r
+   r   r   r   )r
+   ÚtopPÚtopKÚmaxOutputTokensr   Ú
+stopSequences)ÚcontentsÚgenerationConfigrÞ  r©   ÚsystemInstructionr7   )Úsafez8https://generativelanguage.googleapis.com/v1beta/models/z:streamGenerateContent?alt=sser©  )rª  r/   r¬  r®  rq   z!generativelanguage.googleapis.comÚ
+usageMetadataÚpromptTokenCountrr   ÚcachedContentTokenCountr   rt   ÚthoughtsTokenCountrv   ÚcandidatesTokenCountrs   Ú
+candidatesr(   )rÆ   rD   ÚparseÚquoterg   rE   r»  r\   r¼  r§   r¤  rz   rb   rY   r   )rj   r*   r   r   rã  ÚgenrU   rg   rQ   rÉ   r¾  ÚumÚcandÚpartr   r   r   r‚   i  sJ   €þÿ
+
+
+ýÿ
+
+
+€þÿøzGeminiBackend.streamNrƒ   r   r   r   r   rÛ  c  rˆ   rÛ  ÚANTHROPIC_API_KEYÚ	AnthropicÚOPENAI_API_KEYÚOpenAIÚGEMINI_API_KEYÚGOOGLE_API_KEYÚGeminiÚGITHUB_TOKENÚGH_TOKENz8GitHub Models (a personal access token with models:read))rÃ  r¥  rÜ  Úgithubc              
+   C   sü   z t  | ¡}W n ty! } zt d|› ¡ W Y d}~nd}~ww t |j¡s0t | › d¡ t j dkrb|jd@ rMt d| › d t |j¡d›d	| › ¡ t	t d
+ƒrb|j
+t  
+¡ krbt d| › d
+¡ t| dd
+}| 
+¡ W  d  ƒ S 1 sww   Y  dS )zNRead a key from a file. On Linux and macOS refuse a file other users can read.zCannot read key file: Nz is not a regular file.Únté?   z	Refusing z : other users can read it (mode r?  z).
+Fix it with: chmod 600 Úgetuidz: it is not owned by you.r>   r1  )r–   ÚstatÚ OSErrorrL   rM   Ú S_ISREGÚ st_moder‡   Ú S_IMODEr™  Úst_uidrÿ  rN  rI   )r—   Ústr   rc  r   r   r   Ú
+read_key_file’  s$   €ÿ
+
+ÿ$ÿr   c               
+   C   s8   zddl } |  | jd¡ W dS  tttfy   Y dS w )zKSmall protections that matter once a secret is in memory (Linux and macOS).r   N)r   r   )ÚresourceÚ	setrlimitÚ
+RLIMIT_COREr•   r^   r  )r  r   r   r   Úharden_process¤  s   ÿr
+  c                  C   sÌ   t |  \}}|r
+t|ƒ}n1d}|D ]}tj |¡r tj| } nq|s>tj  ¡ s6t d|› d|d › d¡ t	 	|› d¡}|D ]	}tj 
+|d ¡ q@| 
+¡  
+d ¡}|r\tdd	„ |D ƒƒrat d
+¡ t
+ƒ  |S )
+Nr7   zNo z
+ key. Set r   z;, use --key-file, or run in a terminal for a hidden prompt.z API key (hidden, not saved): z"'c                 s   s    | ] }|  ¡ V  qd S rÝ   )Ú isspace)r"   Úcr   r   r   rp   ¿  rÞ   zget_key.<locals>.<genexpr>zNThe key is empty or contains spaces or line breaks. Paste only the key itself.)ÚCLOUDr   r–   Ú environr   rL   ÚstdinÚisattyrM   Ú getpassÚpoprP   Úanyr
+  )r   Úkey_fileÚenvsÚlabelr¤  r   r   r   r   Ú get_key­  s(   
+
+þ
+
+r  c                 C   sx  | j }|dkrd }| _ |dkrt| jƒ}|dkr"t| j| j| jƒS |dkr/t| j| j| jƒS |dkr6t ƒ S |d krEtd | j	| jpBdd	ƒS |d
+krz| jsQt
+ 
+d
+¡ | j}tj
+ |¡rldd l}t| tj
+ |d
+¡¡ƒd }t|| jpttd | j| jƒS t|| jƒ}| js‰t||ƒ| _|dkr™t| j|t| ddƒdS |dkr£t| j|ƒS |dkr±tdd| j|ddS tdd| j|dddS )NÚ copilotrü  Úautoró   r/  re   rŸ  rä   r  rŠ   zPGive the GGUF file with --model, for example --model models/Qwen3-4B-Q4_K_M.ggufr   rš  r   rÃ  rÅ  F)rÅ  rÜ  r¥  zhttps://api.openai.com/v1)r   z"https://models.github.ai/inferencerž  )r   r—   )r   r›  rg   rò   r¡   r    r.  rd   rœ  r£  rL   rM   r–   r—   rí   rL  rM  rÆ   r‰   r   ÚDEFAULTSr  r  Ú
+pick_modelrÂ  rÙ   rÛ  )ÚaÚbr—   rL  r¤  r   r   r   Úmake_backendÅ  sB   
+
+
+ÿr  )rr   rs   rt   ru   rv   )Ú
+prompt_timeÚ
+response_timeÚ sessionÚturnÚ	prompt_nor'   Úclientr   rg   rh   r
+   r   r   r   r   r   r¶   ÚresponseÚ
+operating_sÚ
+first_token_sÚ
+generate_sÚoutput_tok_per_srÕ  r×  Úcache_read_tokensÚcache_write_tokensrµ  Útoken_sourcec                    sN   ‡ fdd„t D ƒ}| ‡ fdd„dD ƒ¡ tD ]
+}ˆ d  |¡||d < q|S ) z4One record as a flat dict with the CSV column names.c                    ó   i | ]}|ˆ   |¡“qS r   ©r   ©r"   r2   ©Úrecr   r   r>     r7  zflat_record.<locals>.<dictcomp>c                    s"   i | ]
+}|ˆ   d ¡p
+i   |¡“qS )r   r/  r0  r1  r   r   r>    s   " ©r
+   r   r   r   r   r   ÚtokensÚ _tokens)Ú
+CSV_FIELDSr!  Ú
+TOKEN_KEYSr   )r2  Úrowr2   r   r1  r   Ú
+flat_record  s
+   r9  c                 C   s,   t j  | d ur	| nt ¡ ¡ ¡ }|jddS )NÚmilliseconds)Útimespec)ÚdatetimeÚ
+fromtimestampr|   Ú
+astimezoneÚ	isoformat)Úepochr)  r   r   r   Ú now_iso  s    rA  c                   @   sL   e Zd ZdZd\ZZZddd „Z dd	„ Zd
+d
+„ Z	dd
+„ Z
+dd„ Z
+dd„ ZdS )ÚSyslogSenderz¥Send each record to a syslog server (RFC 5424) over UDP or TCP.
+    Formats: plain (key=value), json, cef (ArcSight Common Event Format), leef (IBM QRadar LEEF 2.0).)Ú	BSidesDFWz
+LLM Harnessz1.0ÚudpÚplainéè  c                 C   sX   |  d¡\}}} |p
+||rt| ƒnd| _| _|||| _| _| _t  ¡ | _	d | _
+d S )Nú:i  )
+Ú
+rpartitionr%  ÚhostÚportÚprotoÚfmtÚmax_textÚsocketÚ
+gethostnameÚhostnameÚsock)rj   r  rK  rL  rM  rI  r  rJ  r   r   r   rk     s
+   
+
+zSyslogSender.__init__c                 C   s4   |pd  dd¡}t|ƒ| jkr|S |d | j… d S )Nr7   ú
+rm   z...[truncated])r9   r8   rM  r¨   r   r   r   Ú_clip  s   $zSyslogSender._clipc                 C   s†   t |ƒ}|  |d ¡|  |d ¡|d< |d< | jdkr#tj|ddS | jdkr-|  |¡S | jd kr7|  |¡S d  d	d
+„ | ¡ D ƒ¡S )
+Nr¶   r&  r\   F©Úensure_asciiÚcefÚleefrm   c                 s   s@    | ]\}}|d ur|› dt |ƒ tdƒtdƒ¡› dV  qd S )Nz="é"   é'   ú")r·   r9   Úchrr1   r   r   r   rp   ,  s   €> z'SyslogSender.message.<locals>.<genexpr>)	r9  rS  rL  r\   r¼  rV  rW  rÆ   Úitems)rj   r2  r8  r   r   r   rÒ  #  s   &
+
+
+
+
+zSyslogSender.messagec                    sL  dd„ }dd„ ‰ t tj |d ¡ ¡ d ƒ}d |fdt tj |d	 ¡ ¡ d ƒfd
+|d
+ fd|d
+ fd|d fdd|d fdd|d fdd|d fdd|d fdd|d fdd d!|d" › d#|d$ › fd%d&|d' fd(d)|d* fd+d,|d- fd.d/|d0 fd1d2|d3 fd4d5|d6 fg}d7 ‡ fd8d9„|D ƒ¡}d:|| jƒ|| jƒ|| j ƒ|f S );Nc                 S   s   t | ƒ dd¡ dd¡S )Nú\ú\\ú|z\|©r·   r9   ©r;   r   r   r   Úhdr/  s   zSyslogSender.cef.<locals>.hdrc                 S   s    t | ƒ dd¡ dd¡ dd¡S ) Nr]  r^  ú=z\=rÇ  z\nr`  ra  r   r   r   Úext2  rÆ  zSyslogSender.cef.<locals>.extr   rF  ÚrtÚendr!  Úsuserr'   Úsrcr%  Úappr   )Úcs1Labelrg   Úcs1rg   )Úcs2Labelr"  Úcs2r"  )Úcs3Labelr¶   Úcs3r¶   )Úcs4Labelr&  Úcs4r&  )Úcs5Labelrh   Úcs5rh   )Úcs6LabelÚ
+cacheTokensÚcs6zread=r+  z ;write=r,  )Úcn1LabelÚ
+inputTokensÚcn1rÕ  )Úcn2LabelÚoutputTokensÚcn2r×  )Úcn3LabelÚreasoningTokensÚcn3rµ  )Ú	cfp1LabelÚoperatingSecondsÚcfp1r'  )Ú	cfp2LabelÚfirstTokenSecondsÚcfp2r(  )Ú	cfp3LabelÚoutputTokensPerSecondÚcfp3r*  rm   c                 3   ó.    | ]\}}|d ur|› dˆ |ƒ› V  qd S ©Nrc  r   r1   ©rd  r   r   rp   A  ó   €, z#SyslogSender.cef.<locals>.<genexpr>z4CEF:0|%s|%s|%s|llm.chat|LLM prompt and response|3|%s)r%  r<  Ú
+fromisoformatÚ	timestamprÆ   ÚVENDORÚ PRODUCTÚ VERSION)rj   r8  rb  Úepoch_msÚfieldsÚ	extensionr   r‹  r   rV  .  s(   $õÿzSyslogSender.cefc                    sø   d‰ ‡ fdd„‰i d|d “dd “d|d	 “d
+|d
+ “dd
+“dd“d|d “d|d “d|d “d|d “d|d “d|d “d|d “d|d “d|d “d|d “d|d “|d  |d! d"œ¥}ˆ   ‡fd#d$„| ¡ D ƒ¡}d%| j| j| jˆ |f S )&Nú^c                    s    t | ƒ ˆ d¡ dd¡ dd¡S )Nrm   rÇ  ú	r`  ra  )Údelimr   r   ÚvalH  rÆ  zSyslogSender.leef.<locals>.valÚ devTimer   Ú
+devTimeFormatzyyyy-MM-dd'T'HH:mm:ss.SSSXXXÚ usrNamer'   rh  r%  ÚsevrÐ   ÚcatrŸ   rg   r   r"  r¶   r&  rh   rx  rÕ  r{  r×  ÚcacheReadTokensr+  ÚcacheWriteTokensr,  r~  rµ  r'  r!  )r  ÚresponseTimec                 3   r‰  rŠ  r   r1   )r˜  r   r   rp   R  rŒ  z$SyslogSender.leef.<locals>.<genexpr>z LEEF:2.0|%s|%s|%s|llm.chat|%s|%s)rÆ   r\  r  r  r‘  )rj   r8  ÚattrsrU   r   )r—  r˜  r   rW  E  sL   ÿÿÿÿþþþýýýüüûûúùzSyslogSender.leefc                  C   s0  d}|   |¡}d|› dtƒ › d| j› dt ¡ › d| j ¡ › d|› }|  d ¡}zH| jdkrM| j	d u r;t
+ 
+t
+j
+t
+j¡| _	| j	 
+|d d	… | j| jf¡ W d S | j	d u r^t
+j| j| jfd
+d
+| _	| j	 t|ƒ› d  ¡ | ¡ W d S  ty— } ztj d| j› d
+| j› d|› d ¡ d | _	W Y d }~d S d }~ww )Né†   ú<z>1 rm   z
+ llm-harness z - r>   rD  i@  rZ   r<   z[syslog: could not send to rG  z (z!); the local logs still have it]
+)rÒ  rA  rP  r–   ÚgetpidrL  Úupperr§   rK  rQ  rN  Ú AF_INETÚ
+SOCK_DGRAMÚsendtorI  rJ  Úcreate_connectionÚ sendallr8   r  rL   r   Úwrite) rj   r2  ÚpriÚmsgr`   ra   r   r   r   r   ÚsendU  s"   
+6
+
+
+$
+$$€þzSyslogSender.sendN)rD  rE  rF  )
+r„   r…   r†   r-  r  r  r‘  rk   rS  rÒ  rV  rW  r®  r   r   r   r   rB    s    
+
+ 
+rB  c                   @   s.   e Zd Zdd„ Zdd„ Zdd„ Zd
+dd	„Zd S )
+Ú Sessionc                 C   s@   t  ¡ jd d… | _t ¡ | _g | _d | _ d | _d | _	d| _
+d S )Nr5   r   )
+ÚuuidÚuuid4ÚhexÚidr|   Ú startedÚ recordsÚlogÚcsv_pathÚsyslogr$  ri   r   r   r   rk   i  s   
+
+zSession.__init__c                 C   sH   t j|dd tj | j¡ d¡}t j  |d|› d| j› d¡| _	| j	S ) NT©Úexist_okz
+%Y%m%d-%H%M%Szharness-ú-z.log)
+r–   Úmakedirsr<  r=  r´  Ústrftimer—   rÆ   r³  r·  )rj   rï   Ústampr   r   r   Úopen_csvr  s    zSession.open_csvc                 C   s  | j t| jƒd |d< |d< | j|d< | j |¡ | jrAt| jddd }|  tj	|dd	d
+ ¡ W d   ƒ n1 s<w   Y  | j
+ryt
+j 
+| j
+¡ }t| j
+ddd
+d}tj|td
+}|rc| ¡  | t|ƒ¡ W d   ƒ n1 stw   Y  | jr„| j |¡ d S d S )Nrx   r"  r#  r$  r  r>   r1  FrT  rÇ  r7   )r2  Ú newline)Ú
+fieldnames)r³  r8   rµ  r$  rÅ   r¶  rN  r«  r\   r¼  r·  r–   r—   r˜   ÚcsvÚ
+DictWriterr6  Ú
+writeheaderÚwriterowr9  r¸  r®  )rj   r2  rc  rË   r   r   r   r   r  x  s$   
+ÿüÿz
+Session.addNc                    s    |d u r | j n|}t|ƒttdd„ |D ƒƒdƒdœ}tD ]‰ ‡ fdd„|D ƒ}|r-t|ƒnd |ˆ < qtd d„ |D ƒƒ}|d rJ|rJt|d | d	ƒnd |d
+< |S )
+Nc                 s   rº  )r'  Nr   ©r"   Úrr   r   r   rp   ‹  rÞ   z!Session.totals.<locals>.<genexpr>rÐ   )Úcallsr'  c                    s*   g | ]}|d    ˆ ¡dur|d  ˆ  ‘qS )r4  Nr/  rÆ  ©r2   r   r   r$     rƒ  z"Session.totals.<locals>.<listcomp>c                 s   s    | ]	}|d  p	dV  qdS )r)  r   Nr   rÆ  r   r   r   rp     ó   € rs   rx   r*  )rµ  r8   Úroundry   r7  )rj   rµ  Úrecsr)  r{  rï  r   rÉ  r   Útotals‰  s   "&zSession.totalsrÝ   ) r„   r…   r†   rk   r¿  r  rÍ  r   r   r   r   r¯  h  s
+    	r¯  c              
+      sD   ‡ fdd„}d|dƒ› d|dƒ› d |dƒ› d	|d
+ƒ› d
+|dƒ› d
+
+S )Nc                    s   ˆ   | ¡d u r	dS tˆ |  ƒS )Nr»  )r   r·   rÉ  ©r)  r   r   r3   ˜  s   zfmt_tokens.<locals>.vzin rr   z
+ (cache read rt   z, write ru   z) | out rs   z (reasoning rv   ú)r   )r)  r3   r   rÎ  r   Ú
+fmt_tokens—  s   8rÐ  c              
+   C   s^   t j dt| d ƒ› d| d d›d| d  d ur| d  nd› d	| d
+ p#d› d
+| d › d
+
+¡ d S )Nz  [r4  ú | r'  z.2fz s, first token r(  r»  z s, r*  z	 tok/s | rh   z]
+)rL   r   r«  rÐ  r1  r   r   r   Ú
+print_stats  s   "ÿ
+þþrÒ  c                 C   sb   | j sd S |  ¡ }tj d| j› d|d › d| j› d|d d ›dt |ƒ› d	|d
+ p*d
+› d
+¡ d S )
+Nz	
+Session rB   rÈ  z model calls for z
+ prompts, r'  ú.1fz3 s operating time (your typing time not counted)
+  rÑ  r*  r»  z output tok/s
+)rµ  rÍ  rL   r   r«  r³  r$  rÐ  )r"  r)  r   r   r   Úprint_session_summary£  s   "ÿþ
+þrÔ  c               
+   C   s¦   t || ƒ} g }i | _t ¡ }	d }
+|  t|| ƒ| ¡D ]}
+|
+d u r#t ¡ }
+| |
+¡ |r5t j 	|
+¡ t j 
+¡  qt ¡ }|r?t
+ƒ  d |¡}
+t
+| || |
+|	|
+||||ƒ
+ |
+S )Nr7   )r    rz   r|   Úperf_counterr‚   r,   rÅ   rL   Ústdoutr«  Úflushrœ   rÆ   Ú
+record_call)r   r*   r   re   r"  r'   r%  r   rÞ  Út0ÚfirstrÏ   Út1r©   r   r   r   Úrun_turn¬  s&   
+
+
+€
+rÜ  c                   C   s    zt  ¡ W S  ty   Y dS w )NÚ unknown)r  Ú getuserr›   r   r   r   r   Ú
+local_userÁ  s
+   
+ÿrß  c
+                    s†  t t| dd ƒpi ƒ‰t ¡ t ¡ |  }
+‡fdd„tD ƒ}
+|r#|| nd }|
+ d¡}
+i dt d¡“d t |
+||  ƒ“dt |
+ƒ“d	|pDtƒ “d
+|	pId
+“d| j	“d
+| j
+“dt| ddƒ“d‡ fdd„dD ƒ“dt
+dd„ t|ƒD ƒdƒ“d|“dt
+|| dƒ“d|r…t
+|| dƒnd “d|rt
+|dƒnd “d|
+r¡|r¡|dkr¡t
+|
+| dƒnd “d|
+“d ˆ d!d"¡“}| p±t} |  |¡ t| d#d$ƒrÁt|ƒ |S )%Nrz   c                    r.  r   r/  r0  )rÉ   r   r   r>  Ë  r7  zrecord_call.<locals>.<dictcomp>rs   r|   z%Y-%m-%dT%H:%M:%Sr   r!  r'   r%  r   r   rg   rh   ú?r   c                    r.  r   r/  r0  )r   r   r   r>  Ó  r7  r3  r¶   c                 s   rÈ  )r&   r'   r(   Nr   r!   r   r   r   rp   Ô  rÊ  zrecord_call.<locals>.<genexpr>r7   r&  r'  rÐ   r(  r)  r*  r   rx   r4  r-  rw   znot reportedÚshowF)r   rÙ   r|   rÕ  r7  r   r½  rA  rß  r‡   rg   Únextr)   rË  Ú SESSIONr  rÒ  )r   r*   r   r©   rÙ  rÚ  rÛ  r"  r'   r%  Úwall_endr4  Úgen_sr+   r2  r   )r   rÉ   r   rØ  È  sZ   
+
+ÿþþ
+ýýüüüûú ùø	÷
+ö"
+õôô
+rØ  a€  You can use tools. To use one, reply with ONLY one JSON object, nothing else:
+{"tool": "<name>", "args": {...}}
+Tools:
+- list_dir: {"path": "."}  lists files in a folder
+- read_file: {"path": "notes.txt"}  reads a text file
+- calculator: {"expression": "2*(3+4)"}  does arithmetic
+After you get a TOOL RESULT, answer the user in plain text. If no tool is needed, answer in plain text.c                 C   s¬   t | tjƒr
+t| jƒS t | tjƒrt | jt tfƒr| jS t | tj	ƒr9t
+| j
+ƒtv r9tt
+| j
+ƒ t| j
+ƒt| jƒƒS t | tjƒrRt
+| j
+ƒtv rRtt
+| j
+ƒ t| jƒƒS tdƒ‚)Nz)only numbers and + - * / ** % are allowed)rQ  ÚastÚ
+ExpressionÚ_calcrU   ÚConstantÚvaluer%  ÚfloatÚBinOpr^  ÚopÚ_OPSÚleftÚrightÚ UnaryOpÚ operandr^   )Únoder   r   r   rè  õ  s   
+ rè  c                 C   sF   t j | ¡} t j t j | |¡¡}|| kr!| | t j ¡s!tdƒ‚|S )z9Resolve rel inside root. Refuse anything that escapes it.zpath is outside the tool folder) r–   r—   ÚrealpathrÆ   r[   Úsepr^   )ÚrootÚrelÚfullr   r   r   Ú	safe_path  s
+   rù  a°  
+Memory tools (an Obsidian vault of Markdown notes). Use them to remember facts the user
+asks you to keep, and to look up what you saved before. Search before you say you do not know.
+- memory_search: {"query": "juice shop port"}  finds notes that contain those words
+- memory_read: {"note": "AI Memory/Project.md"}  reads one note
+- memory_write: {"note": "Project", "text": "The lab uses port 3000."}  adds a dated entry to a noterZ   c              
+      sj  dd„ t  d| ¡ ¡D ƒ}g }t | ¡D ]Š\}}} dd„ |D ƒ|d d …< | D ]w}| d¡s.q&tj  ||¡}	zt|	dd d}
+|
+ 	¡ }
+W d   ƒ n1 sLw   Y  W n	 t
+y[   Y q&w |d	 |
+  ¡ ‰ t
+‡ fd
+d
+„|D ƒƒ}|rt‡ fdd„|D ƒp}d
+gƒ}
+|
+t
+d
+|
+d ƒ|
+d …  dd	¡}| |tj |	| ¡|f¡ q&q|jdd d  dd
+„ |d |… D ƒ¡p´dS )Nc                 S   s   g | ]
+}t |ƒd kr|‘qS )é   rÒ   ©r"   r   r   r   r   r$     rl   z!memory_search.<locals>.<listcomp>z\w+c                 S   s   g | ]	}|  d ¡s|‘qS )Ú.rA  )r"   rð   r   r   r   r$     rD  ú.mdr>   r9   ©r2  Úerrorsrm   c                 3   s    | ]}ˆ   |¡V  qd S rÝ   )Úcountrû  ©r    r   r   rp   !  s   € z memory_search.<locals>.<genexpr>c                    s   g | ]
+}|ˆ v rˆ   |¡‘qS r   rß   rû  r  r   r   r$   #  rˆ  r   éP   é    rÇ  T)Ú reversec                 s   s(    | ]\}}}d |› d|› dV  qdS )z- z: ...z...Nr   )r"   r  ré   Úsnipr   r   r   rp   '  s   €& zNo notes found.)ÚreÚ findallr0   r–   ÚwalkrŽ  r—   rÆ   rN  rI   r  ry   rå   rÈ   r9   rÅ   Ú relpathrn  )ÚvaultÚqueryÚlimitr   Úhitsrö  ÚdirsÚfilesÚfnr—   rc  r©   Úscorer€   Ú snippetr   r  r   Ú
+memory_search  s4   
+
+ÿ€ÿ"€ò r  c                 C   s  t  ddt|ƒ¡ ¡  d¡pd}| ¡  d¡r|d d… n|}t tj	 
+| |¡|d ƒ}tj
+tj	 |¡d d tj	 
+|¡ }t|d	d
+d
+,} |rV|  dt d
+¡› d|› d¡ |  dt d¡› dt|ƒ ¡ › d¡ W d   ƒ n1 ssw   Y  dtj	 || ¡› S )Nz[^\w .-]r7   z. ÚNotesrý  éýÿÿÿTr¹  r  r>   r1  z---
+tags: [ai-memory]
+created: z%Y-%m-%dz 
+---
+# rÇ  z
+- z%Y-%m-%d %H:%MrB   z	Saved to )r  Úsubr·   rP   Úlstripr0   rŽ  rù  r–   r—   rÆ   r¼  rî   r˜   rN  r«  r|   r½  r	  )r
+  rï   Únoter©   r‡   r—   rË   rc  r   r   r   Úmemory_write*  s    (ýr  c              
+   C   s”  |   d¡|   di ¡p
+i }}|rn| d¡rn|stdƒ‚|\}}|dkr2t|t|  dd ¡ƒƒd d… S |d	kr[tt|t|  d
+d ¡ƒƒd
+dd
+
+} |   d¡W  d   ƒ S 1 sVw   Y  |dkrnt|||  d
+d¡|  dd ¡ƒS |dkrƒtt	t
+j
+t|  dd ¡ƒddƒƒS |dkrœd t
+t t||  dd¡ƒ¡ƒ¡d d… S |dkrÃtt||  dd ¡ƒd
+dd
+
+} |   d¡W  d   ƒ S 1 s¾w   Y  td|› ƒ‚)NÚtoolÚargsÚ memory_z=memory is not turned on (start the harness with --memory-dir)r  r
+  r7   iÐ   Ú
+memory_readr  r>   r9   rþ  i   r  r  r©   Ú
+calculatorÚ
+expressionr  )ÚmodeÚlist_dirrÇ  r—   rü  Ú	read_filezunknown tool: )r   r[   r^   r  r·   rN  rù  rI   r  rè  ræ  rí  rÆ   rM  r–   Ú listdir)ÚcallÚtool_dirÚmemoryr‡   r  r
+  rï   rc  r   r   r   Úrun_tool7  s,   " ÿ"* ÿr'  c              	   C   sÆ   |   d¡d } |  d¡}|dkrad}t|t| ƒƒD ];}|| | dk| | dk 7 }|dkrTzt | ||d … ¡}t|t ƒrGd |v rG|W   S W n	 tyQ   Y nw  nq|  d|d ¡}|dksdS )	zCPull the first {...} object with a "tool" key out of a model reply.rÔ   r   ú{r   ú}rx   r  N)	ro   rà   r‰  r8   r\   r]   rQ  r   r^   )r©   r$  Údepthr€   r¾  r   r   r   Ú	find_jsonN  s(   
+
+€ÿùô
+r+  c           	   
+   C   s  d}t |jd ƒD ]{}t| ||ƒ}| d|dœ¡ t|ƒ}|s#|  S ||jkr0tdƒ |  S d } |jrHt dt 	|¡› d ƒ 
+¡  
+¡ dkrHd	} | d u roz
+t||j
+t|ƒƒ} W n tyn } z
+d
+|› } W Y d }~nd }~ww td
+| d d… › ƒ | d
+d|  dœ¡ q	|S )Nr7   rx   rÝ  ©r&   r(   z[stopped: reached --max-steps]z  Run z? [y/N] rÍ   z The user refused this tool call.z ERROR: z  tool result: éÈ   r'   z
+TOOL RESULT:
+)r‰  Ú	max_stepsrÜ  rÅ   r+  rœ   Ú approverr   r\   r¼  rP   r0   r'  r%  Ú	memory_ofr›   )	r   r*   r   r  ÚreplyÚstepr$  r  r   r   r   r   Úturn_with_toolsb  s.   
+(€ÿr3  aª  Commands:
+  /set NAME VALUE   change a setting (temperature, top_p, top_k, max_tokens, seed,
+                    repeat_penalty, ctx, effort low|medium|high|off, stop TEXT)
+  /system TEXT      change the system prompt (clears the conversation)
+  /reset            clear the conversation
+  /show             show the current settings
+  /stats            show the token and time totals for this session
+  /quit             leavec                 C   s¨   |t vr
+td|› ƒ‚|dkr'|tvr|dkrtdƒ‚|dkr!d n|| d< d S |dkr6|r0|gng | d< d S |tv rBt|ƒ| |< d S |tv rNt|ƒ| |< d S || |< d S )Nzunknown setting r   Úoffz'effort must be low, medium, high or offr   ) r  r^   r   ÚINT_KEYSr%  Ú
+FLOAT_KEYSrë  )r   r‡   rê  r   r   r   Ú
+parse_setting‡  s   r7  c                 C   sR   t tƒ}dD ]}t| |d ƒ}|d ur|||< q| jr| j|d< | jr'| j|d< |S )N)r
+   r   r   r   r   r   r   r   r   r   )r   r  rÙ   r   r   )r  r   r2   r3   r   r   r   Úbuild_settings˜  s   €
+
+r8  c                 C   s.   t | dd ƒ}|rtj tj |¡¡| jfS d S )NÚ
+memory_dir)rÙ   r–   r—   rô  Ú
+expanduserÚ
+memory_folder)r  Úmdr   r   r   r0  ¥  s   "r0  c                 C   s0   |rdt  nd|r
+tnd }d| d | dœgS )Nú
+
+r7   r   r,  )Ú
+TOOL_PROMPTÚ
+MEMORY_PROMPT)r   Útoolsr&  Úextrar   r   r   Únew_messagesª  s   rB  c                 C   s  t | dd ƒrtj tj | j¡¡st  d| j› d¡ d| _| j	t
+_
+| jt
+_t | dd ƒr>t
+dt
+ tj | j¡¡› tjd  t | dd ƒrct| j| j| jƒt
+_t
+d	| j› d
+| j ¡ › d
+| j› tjd  | jr…t| jdd
+}| ¡ | _W d   ƒ d S 1 s~w   Y  d S d S )Nr9  zMemory folder not found: z2. Create the Obsidian vault first (Lab 3, Part 2).TÚ log_dirzLogging this session to rŒ   r¸  zSending z
+ syslog over z to r>   r1  )rÙ   r–   r—   rí   r:  r9  rL   rM   r@  Ústatsrã  rá  r¶  rœ   r¿  rC  r   rB  r¸  Úsyslog_protoÚ
+syslog_formatr¥  Ú
+system_filerN  rI   r   )r  rc  r   r   r   Ú
+setup_metrics¯  s    $*"ÿÿrH  c              
+   C   s¶  t | ƒ t| ƒ}t| ƒ}t|| jt| ƒƒ}|jrdnd}t d|j› d|j	› d|› ƒ t dƒ 	 zt
+dƒ 
+¡ }W n tt
+fyG   t ƒ  Y nw |sKq/| d	¡rø|d
+d …  d
+¡\}} }z|dv rcW né|d
+krlt tƒ np|dkr~t|| jt| ƒƒ}t dƒ n^|dkr”||d< t|| jt| ƒƒ}t dƒ nH|dkr¸| d
+¡\}	} }
+t||	 
+¡ |
+ 
+¡ ƒ t |	› d||	 
+¡  › ƒ n$|dkrÐ| ¡ D ]\}
+}t d|
+› d|› ƒ qÀn|dkrØtƒ  nt dƒ W n ttfyö }
+ z
+t d|
+ƒ W Y d }
+~
+nd }
+~
+ww q/| d|dœ¡ t jd
+7  _| jrt|||| ƒ q/t ddd d | dt|||ƒdœ¡ td d!„ |D ƒƒd" }|jrK||d# d$ krKt d%|› d&|d# › d'ƒ q0| jsT| jrYtƒ  d S d S )(Nzon this computerz0in the cloud (your messages leave this computer)zharness: backend=z  model=z
+, running z$Type a message. /help for commands.
+Tzyou> r¡  rx   rm   )ÚquitrM   ÚhelpÚresetzconversation clearedr   z+system prompt changed, conversation clearedrP  z = rá  ú  rB   rD  zunknown command, try /helpzerror:r'   r,  zbot> r7   )rf  r×  rÝ  c                 s   s    | ]	}t |d  ƒV  qdS rn   rÒ   r!   r   r   r   rp   ó  rÊ  zcmd_chat.<locals>.<genexpr>rÑ   r   gš™™™™™é?z[warning: history is about z tokens, near the z token window])rH  r  r8  rB  r@  r0  r   rœ   r‡   rg   rr   rP   ÚEOFErrorÚKeyboardInterruptr[   Ú	partitionÚHELPr7  r\  rÔ  r^   ÚKeyErrorrÅ   rã  r$  r3  rÜ  ry   rD  r¶  )r  r   r   r*   rl  r`   Úcmdr  Úrestr‡   rê  r2   r3   r   Úapproxr   r   r   Úcmd_chatÀ  sz   þ
+
+
+
+ÿ€€ÿÓ.
+ÿrU  c                  C   s*  t | ƒ t| ƒ}t| ƒ}| jrd | j¡nd}| jr=t| jdd}|r(|d nd|  ¡  }W d   ƒ n1 s8w   Y  |sItj	 
+¡ sItj	  ¡ }|sPt 
+d¡ t|| j
+t| ƒƒd |dœg }t jd	7  _| j
+rqt|||| ƒ nt| jƒD ]}|rt jd	7  _t|||ƒ qv| jsŽ| jr“tƒ  d S d S )
+Nrm   r7   r>   r1  r=  z)Give a question, --file, or pipe text in.r'   r,  rx   )rH  r  r8  r¶   rÆ   r   rN  rI   rL   r  r  rM   rB  r@  r0  rã  r$  r3  r‰  ÚrepeatrÜ  rD  r¶  rÔ  ) r  r   r   r¶   rc  r*   r€   r   r   r   Ú cmd_askú  s.   ÿ
+
+
+ÿrW  )z-https://api.anthropic.com/v1/models?limit=100r.   )z https://api.openai.com/v1/modelsÚbearer)zDhttps://generativelanguage.googleapis.com/v1beta/models?pageSize=200r/   )z'https://models.github.ai/catalog/modelsrX  c           
+       C   sð   t |  \}}ddi}|dkrd| |d< n|||< | dkr!d |d< tjj||d	}d
+ t|tj  |¡jƒ¡}t	 
+|¡} | d
+krKdd
+„ |  
+dg ¡D ƒ}n$| dkrdt| t
+ƒrV| n|  
+dg ¡}	dd
+„ |	D ƒ}n
+dd
+„ |  
+dg ¡D ƒ}tdd„ |D ƒƒS )z=The model ids this key can use, from the provider's own list.ÚAcceptr©  rX  r6   r«  rÃ  rÏ  rÐ  )r­  r7   rÜ  c                  S   s0   g | ]}d |  dg ¡v r|d  dd¡d ‘qS )ÚgenerateContentÚsupportedGenerationMethodsr‡   r¡  rx   r   )r   ro   r!   r   r   r   r$   -  s    ÿz"list_model_ids.<locals>.<listcomp>Úmodelsrü  ra   c                 S   s    g | ]}|  d ¡r|  d ¡‘qS ©r³  r/  r!   r   r   r   r$   1  r4   c                 S   s   g | ]}|d  ‘qS r]  r   r!   r   r   r   r$   3  r%   c                 s   s    | ] }|r|V  qd S rÝ   r   r=  r   r   r   rp   4  rÞ   z!list_model_ids.<locals>.<genexpr>)Ú
+MODEL_LISTSrD   rE   r»  rÆ   rY   rí  ÚurlsplitÚnetlocr\   r]   r   rQ  rÀ   rM  )
+r  r¤  r£  Úhowr­  rQ   rU   ra   r'  r\  r   r   r   Úlist_model_ids  s"   
+rb  c                  C   sà   t | |ƒ}|st d¡ tj ¡ st dd |dd… ¡ ¡ t|dƒD ]\}}t d |d›d |› tjd	 q$	 t	d
+t
+|ƒ› dƒ 
+¡ }| ¡ rodt
+|ƒ  krVt
+|ƒkron n|t
+|ƒd  }t d
+|› d|› tjd	 |S q8)zYNo --model for a cloud backend: show the provider's current list and let the user choose.z-The provider returned no models for this key.z#Add --model with one of these ids: z, Né   rx   rL  Ú3drŒ   Tz!Type the number of a model (1 to z): zUsing z . Next time you can add --model )rb  rL   rM   r  r  rÆ   r{   rœ   r   rr   r8   rP   Ú isdigitr%  ) r  r¤  r'  rC  r€   rv  rg   r   r   r   r  7  s   
+
+
+(ûr  c                 C   sl   | j dkr dn| j }|tvrt d¡ t|| jƒ}t||ƒ}|D ]}t |ƒ q t dt|ƒ› dtj	d d S ) Nr  rü  zJmodels works with --backend anthropic, openai, gemini or github (copilot).rÇ  zA models. Lists change often; this is what your key can use today.rŒ   )
+r   r^  rL   rM   r  r  rb  rœ   r8   r   )r  r  r¤  r'  r€   r   r   r   Ú
+cmd_modelsH  s   
+
+
+rf  c                 C   sh  zdd l }W n ty   t d¡ Y nw t| jƒ}tj  | j	¡s+t d| j	› d¡ t
+ 
+¡ }| j
+dkr€ddlm
+} dd lm} |d| j	|d	d	d	d
+œd
+}| | j¡ d¡} td
+tj  | j	¡› d| j› dƒ || | jdD ]}tdd|d  |d f ƒ qnnzddlm}	 W n ty–   t d¡ Y nw |dkrž|jn|j}
+dd l}
+|
+ tj  | j	dd¡¡r³dnd }|	j| j	|
+d	|d	d |¡}
+|
+jd	d |jdd  | j!dkr×| j!nt"t
+ 
+¡ ƒ¡}tdtj  | j	¡› d| #¡ › d | j$› d!| j%› d"| j%› d#
+ƒ |
+| j| j$| j&| j%| j%|d$j'd } |  (| j)¡ td%| j)› d&ƒ td't
+ 
+¡ | d(›d)| #¡ › d*tj*d+ d S ),Nr   zBPart 2c needs torch: python3 -m pip install -r requirements-hf.txtzModel folder not found: z>. Run python3 prefetch_lab1.py --with-images, or pass --model.Úclassify)Úpipeline)ÚImagezimage-classificationT)rø   r÷   )rg   rh   Úuse_fastÚmodel_kwargsÚRGBzWhat z	 sees in rG  )r   z
+  %5.1f%%  %séd   r  r  )ÚAutoPipelineForText2ImagezOImage generation needs diffusers: python3 -m pip install -r requirements-hf.txtrf   Ú*z*.fp16.safetensorsÚfp16)Ú
+torch_dtyperø   Ú variantr÷   )Ú disable)rh   z
+Drawing with z on the rB   z
+ step(s), r;   z ...)r¶   Únum_inference_stepsÚguidance_scaleÚheightÚwidthÚ	generatorzWrote z. Open it to look.ú[rÓ  z
+ s on the ú]rŒ   )+r×   r•   rL   rM   rÜ   r¡   r–   r—   rí   rg   r|   Útaskró   rh  ÚPILri  rN  rr   Ú convertrœ   r™   ÚtopÚ	diffusersrn  rÿ   r   rL  rÆ   rý   r  Úset_progress_bar_configÚ	Generatorr  r   r%  r¥  Ústepsro  ÚguidanceÚimagesÚsaver+   r   )r  r×   rh   rÙ  rh  ri  ÚclfÚimgré   rn  rù   rL  rr  ÚpipeÚgr   r   r   Ú	cmd_imageW  sX   ÿ
+
+ÿ"ÿÿ ÿÿ*<
+ÿÿ.rŠ  c                  C   sT   | d }|d p	d|d pd|d pd|d pd d|d pdid |d p&did	œS )
+zNA metrics record in the OpenAI 'usage' shape, so clients of serve can read it.r4  rr   r   rs   r³  rt   rµ  rv   )r°  r±  Útotal_tokensr²  r´  r   )r2  r)  r   r   r   Úopenai_usage‚  s   ýrŒ  c                  C   sF   zt jg d¢ddddj} W n ty   tƒ  Y S w tt d| ¡ƒS )zbIPv4 addresses of the docker0 bridge on Linux (empty elsewhere). Only local containers reach them.)Úipz-4z-oÚaddrrá  Ú docker0TrZ   )Úcapture_outputr©   r=   zinet (\d+\.\d+\.\d+\.\d+)/) Ú
+subprocessr  rÖ  r›   rP  r  r   )r+   r   r   r   Údocker_bridge_ips‹  s   
+ÿÿ
+ÿr’  c                    s"  t | ƒ | jdvr| jh d£tƒ B vrt d¡ t| ƒ‰ t | ƒ‰t 	¡ ‰| j
+p)ˆ j
+‰ˆ jr/d nt
+ d¡‰G ‡ ‡‡‡‡fdd„dtƒ}t| j| jf|ƒ}td ˆ› d| j› d	| j› d
+ ƒ ˆrktd
+ƒ td| jˆf ƒ n td
+| j ƒ | jdkr{tdƒ z | ¡  W d S  ty   tdƒ Y d S w )N)r  rŠ   ró   r/  rŸ  re   >   ú::1Ú	localhostú	127.0.0.1zÉRefusing to serve a cloud model on a network address: anyone who can reach this port could spend your API key. Use --host 127.0.0.1 (or the docker0 address for Docker on Linux), or serve a local model.é   c                       sn   e Zd ZdZdd„ Zdd„ Zdd „ Zdd	d
+„Z ‡fd
+d„Z‡fd
+d„Z	‡ ‡‡‡fdd„Z
+‡ ‡‡‡fdd„Z
+dS )zcmd_serve.<locals>.HzHTTP/1.1c                 W   s   t j d||  d ¡ d S )Nz serve: rÇ  )rL   r   r«  )rj   rL  r  r   r   r   Ú
+log_messageª  r   z cmd_serve.<locals>.H.log_messagec                 S   s\   t  |¡ ¡ }|  |¡ |  dd¡ |  dtt|ƒƒ¡ |  dd¡ |   ¡  | j 	|¡ d S )Nrª  r©  úContent-LengthúAccess-Control-Allow-Originro  )
+r\   r¼  r§   Ú
+send_responseÚ
+send_headerr·   r8   Ú
+end_headersÚwfiler«  )rj   rK   r¾  ra   r   r   r   Ú_json­  s   
+zcmd_serve.<locals>.H._jsonc                 S   s0   |   d¡ dD ]
+\}}|  ||¡ q |  ¡  d S )NéÌ   ))r™  ro  )zAccess-Control-Allow-Headersro  )zAccess-Control-Allow-MethodszGET, POST, OPTIONS)r˜  Ú0)rš  r›  rœ  )rj   r2   r3   r   r   r   Ú
+do_OPTIONS¶  s   
+zcmd_serve.<locals>.H.do_OPTIONSNc                 S   sX   | j }| d¡p| d¡p|pi  d¡pd}| d¡}|r%|› d|› d n|| jd fS )	z¾Who sent this request? Open WebUI forwards the signed-in user in X-OpenWebUI-User-* headers
+            when ENABLE_FORWARD_USER_INFO_HEADERS is true; OpenAI clients may send a "user" field.zX-OpenWebUI-User-EmailzX-OpenWebUI-User-Namer'   zunknown (no user header)zX-OpenWebUI-User-Rolez [rz  r   )r­  r   Úclient_address)rj   rQ   Úhr'   r&   r   r   r   Ú_who¾  s   ÿÿ
+"zcmd_serve.<locals>.H._whoc                    sP   ˆ d u rdS | j  dd¡ ddd¡}t | ¡ ˆ  ¡ ¡rdS |  dd di¡ d	S )
+NTr«  r7   r6   rx   r@   rG   zmissing or wrong tokenF) r­  r   r9   ÚhmacÚcompare_digestr§   rž  )rj   Úgiven)Útokenr   r   Ú
+_authorizedÇ  s   z cmd_serve.<locals>.H._authorizedc                    sj   | j dv r
+|  dddi¡S |  ¡ sd S | j  d¡dv r+|  dd ˆ dd	d
+œgd
+œ¡ d S |  dd
+di¡ d S )N)r¡  z /healthr-  Ústatusr¢   r¡  )z
+/v1/modelsz /modelsrÀ   rg   Ú harness)r³  ÚobjectÚowned_by)r¬  ra   rA   rG   ú	not found)r—   rž  r©  r¢  ri   )Úmodel_idr   r   Údo_GETÐ  s   
+
+ÿzcmd_serve.<locals>.H.do_GETc              
+      s  z&t  | j t| j dd¡ƒ¡pd¡}t |d tƒr|d nd 	|d ¡}W n  t
+t
+tfyF } z|  
+dd d|› i¡W  Y d	}~S d	}~ww tˆƒ}d
+D ]}| |¡d	ur\|| ||< qM| d
+¡rtt |d
+ tƒrn|d
+ gn|d
+ |d
+< dd
+dœd|dœg}ˆ  t jd7  _|  |¡\} }tˆ ||d| |d}	W d	  ƒ n1 s£w   Y  dt ¡ jd	d…  dtt ¡ ƒˆd|	d
+dœgttjd ƒdœ}
+| d¡rùdt  |
+¡ d  ¡ }
+|  d¡ |  dd¡ |  dtt|
+ƒƒ¡ |  ¡  | j  |
+¡ d	S |  
+d|
+¡ d	S )zœThe older text-completion API: a prompt in, text out. Some editor features
+            (Continue's autocomplete and edit actions) call this instead of chat.r˜  r   ó   {}r¶   r7   r?   rG   ú
+bad request: N©r
+   r   r   r   r   r   z4Continue the text. Reply with only the continuation.r,  r'   rx   F©re   r'   r%  zcmpl-é   Útext_completion)Úindexr©   Ú
+finish_reasonr   ©r³  r¬  Ú createdrg   r¾   rz   r‚   údata: z
+
+data: [DONE]
+
+r-  rª  útext/event-stream)!r\   r]   ÚrfilerI   r%  r­  r   rQ  r·   rÆ   r^   rQ  Ú	TypeErrorrž  r   rã  r$  r¤  rÜ  r°  r±  r²  r|   rŒ  rµ  r¼  r§   rš  r›  r8   rœ  r  r«  )rj   rQ   r¶   r   r   r2   rÙ  r'   r%  r©   r?  ra   ©r   ÚbaseÚlockr¯  r   r   Ú_completionsÛ  sD   $("€ÿ€
+$ÿý þ
+
+z!cmd_serve.<locals>.H._completionsc                    s®  |   ¡ sd S | j d¡}| d¡r| d¡s|  ¡ S | d¡s'|  dddi¡S zt| j  d d¡ƒ}t	 
+| j
+ |¡p:d	¡}d
+d
+„ |d D ƒ}W n  t
+ttfyf } z|  d
+dd|› i¡W  Y d }~S d }~ww tˆƒ}dD ]} | | ¡d ur|||  || < qm| d¡r”t|d tƒrŽ|d gn|d |d< dt ¡ jd d…  ‰ tt ¡ ƒ‰d4‡ ‡‡fdd„	}ˆ | d¡r‚|  d¡ |  dd¡ |  dd¡ |  dd¡ |  dd¡ |  ¡  d| _z™| j |d d!iƒ¡ t|ˆƒ}	t jd"7  _i g t  ¡ d f\ˆ_!}
+}
+}ˆ "t#||	ƒ|	¡D ]}
+|pt  ¡ }|
+ $|
+¡ | j |d#|
+iƒ¡ | j %¡  q	|  &|¡\}}t'ˆ||	d$ (|
+¡|
+|t  ¡ ||d%	}| d&¡pHi  d'¡re| j d(t	 )ˆ d)ˆˆg t*|ƒd*œ¡ d+  +¡ ¡ | j |i dƒ¡ | j d,¡ W nF t,t-fy   Y nCw t jd"7  _|  &|¡\}}t.ˆ||d-||d.}|  dˆ d/ˆˆt*tj/d0 ƒddd!|d1œd2œgd3œ¡ W d   ƒ d S W d   ƒ d S W d   ƒ d S 1 sÐw   Y  d S )5Nr¡  z/completionsrž  rA   rG   r®  r˜  r   r±  c                 S   sD   g | ]}|d  t |d tƒr|d n
+d dd„ |d D ƒ¡dœ‘qS )r&   r(   r7   c                 s   s    | ]	}|  d d¡V  qdS )r©   r7   Nr/  r4  r   r   r   rp     rÊ  z:cmd_serve.<locals>.H.do_POST.<locals>.<listcomp>.<genexpr>r,  )rQ  r·   rÆ   r!   r   r   r   r$      s
+    þ
+ÿz0cmd_serve.<locals>.H.do_POST.<locals>.<listcomp>r*   r?   r²  r³  r   z	chatcmpl-rµ  c                    s0   ˆ dˆˆd| |dœgdœ}dt  |¡ d  ¡ S ) Núchat.completion.chunkr   )r·  r¿   r¸  )r³  r¬  rº  rg   r¾   r»  r=  )r\   r¼  r§   )r¿   Úfinishr?  )Úcidrº  r¯  r   r   rÎ     s
+   þz+cmd_serve.<locals>.H.do_POST.<locals>.chunkr‚   r-  rª  r¼  z
+Cache-Controlzno-cacher™  ro  Ú
+ConnectionÚcloseTr&   rÝ  rx   r(   r7   )r'   r%  r¨  r§  r»  rÃ  r¹  r=  s   data: [DONE]
+
+Fr´  zchat.completionr   r,  )r·  r¸  rÒ  )r³  r¬  rº  rg   rz   r¾   rÝ   )0r©  r—   r¢  rŽ  rÂ  rž  r%  r­  r   r\   r]   r½  rI   r^   rQ  r¾  r   rQ  r·   r°  r±  r²  r|   rš  r›  rœ  Úclose_connectionr  r«  r    rã  r$  rÕ  rz   r‚   r,   rÅ   r×  r¤  rØ  rÆ   r¼  rŒ  r§   ÚBrokenPipeErrorÚConnectionResetErrorrÜ  rµ  )rj   r—   rC  rQ   rÙ  r   r   r2   rÎ   ÚssetrÞ  rÙ  rÚ  rÏ   r'   r%  r2  r1  r¿  )rÅ  rº  r   Ú do_POSTü  sœ   
+
+þ"€ÿ€
+$
+
+
+ÿ
+þþþÿÿ
+þÞå$ãzcmd_serve.<locals>.H.do_POSTrÝ   )r„   r…   r†   Úprotocol_versionr—  rž  r¡  r¤  r©  r°  rÂ  rÌ  r   ©r   rÀ  rÁ  r¯  r¨  r   r   ÚH§  s    	
+		
+!rÏ  zserving z
+ on http://rG  z/v1z?This model uses your cloud key, so the server needs a password.zDOpen WebUI or Continue: base URL http://localhost:%d/v1, API key: %szLOpen WebUI or Continue: use base URL http://localhost:%d/v1 and any API key.r•  zKFrom Docker on Linux, start with --host 0.0.0.0 so containers can reach it.z
+stopped)rH  r   rI  r’  rL   rM   r  r8  r"  ÚLockÚ
+served_namerg   r   rS   Ú
+token_urlsafer   r   rJ  rœ   Ú
+serve_foreverrN  )r  rÏ  Úsrvr   rÎ  r   Ú	cmd_serve•  s0   
+
+  
+ÿrÕ  c            
+       C   s`  t jdd} | jdd}dd„ }d d„ }|jd	d
+d
+}||ƒ ||ƒ |jdd
+d
+}||ƒ ||ƒ |jddd |jddd
+ |jdtddd |jddd
+}||ƒ |jddd |jdtdd |jdd d
+ |jd!d"d
+} | jd#d$g d%¢d& | jd'd(d
+ |jd)d*d
+}|jd+d,d-gd. |jd/d0d
+ |jd1d2d
+ |jd3td4d5d |jd6tdd7d |jd8td9d:d |jd;td<d=d |jd>td?d |jd@dAd |jdBdCtdDdEdF t jdd … }	|	ró|	dD  	dG¡rø|	dD dHvrød	g|	 }	|  
+|	¡}
+|
+j
+s |  ¡  d S |
+j
+d)kr!|
+j
+s!tj d!|
+jd,krdIndJ¡|
+_
+tttttdKœ|
+j
+ |
+ƒ d S )LNzA small LLM harness.)Ú
+descriptionrR  )Údestc                  S   s†  | j ddg d¢d | j ddd  | j dd	d
+d
+ | j dd
+d  | j dtdd | j ddtddd | j dtd | j ddtd | j ddtd | j ddtd | j dd td | j d!td | j d"td#d | j d$ttƒd%d& | j d'd(d)d* | j d+d,d  | j d-d.d  | j d/d0d1d* | j d2d3d  | j d4d0d5d* | j d6d7d  | j d8d9d  | j d:d;d<gd;d= | j d>g d?¢d@d= d S )ANú	--backendr  )
+r  rŠ   ró   r/  rŸ  rÃ  r¥  rÜ  rü  r  re   )rä   r¾   ú --modelzXlocal: a .gguf file, a safetensors folder or an ONNX folder. cloud or server: a model id©rJ  z--urlzhttp://localhost:11434/v1zNserver backend base URL. Ollama 11434/v1, KoboldCpp 5001/v1, llama.cpp 8080/v1©rä   rJ  ú
+--key-fileztfile holding the API key (must be mode 600). Otherwise the key comes from an environment variable or a hidden promptz	--threadszCPU threads (default: all))r^  rJ  ú--gpu-layersr¡   r   zslocal model only: layers to put on the GPU. 0 = CPU only (default), -1 = all. Needs a GPU build of llama-cpp-python©r×  r^  rä   rJ  z
+--temperature)r^  z --top-pr   )r×  r^  z --top-kr   z--max-tokensr   z--repeat-penaltyr   ú--seedz--ctxz9context window in tokens for a local model (default 4096)z--effortz/local Qwen3 preset: thinking on/off + token cap)r¾   rJ  z--stoprÅ   zstop sequence (repeatable)©ÚactionrJ  z--systemz
+system promptz
+--system-filez4read the system prompt from a file (for cache tests)z --statsÚ
+store_truez)print tokens and timing after every replyz--logzNappend one JSON line per model call to this file (prompt, reply, time, tokens)z --cachez4anthropic: mark the system prompt for prompt cachingz	--log-dirzLwrite a date-stamped CSV .log file for this session into this folder (Lab 4)z--syslogz?send every record to a syslog server, HOST or HOST:PORT (Lab 4)z--syslog-protorD  Útcp)r¾   rä   z--syslog-format)rE  r\   rV  rW  rE  )Úadd_argumentr%  rë  rÀ   r   ©Úspr   r   r   ÚcommonV  s<   ÿÿÿzmain.<locals>.commonc                 S   sb   | j dddd | j ddd d | j d	dd
+d | j d
+tdd
+ | j ddd | j dddd d S )Nz --toolsrâ  zenable the tool looprà  z
+--tool-dirrü  zfolder the file tools may readrÛ  z	--approvezask before every tool callz
+--max-stepsrÑ   ©r^  rä   z--memory-dirzCan Obsidian vault folder to use as long-term memory (Lab 3, Part 2)rÚ  z--memory-folderz	AI Memoryz*the vault subfolder the model may write to)rä  r%  rå  r   r   r   r@  w  s   zmain.<locals>.toolsÚchatzinteractive chat (default)rÚ  Úaskzone question, then exitr¶   ro  )Únargsz--filezappend this file to the promptz--repeatrx   zask N times (compare variety))r^  rä   rJ  ÚservezOpenAI-compatible serverz--hostr•  rã   z--porti:4  rè  z
+--served-namezmodel name to advertiser\  z&list the model ids a cloud key can userØ  T)rÃ  r¥  rÜ  rü  r  )Úrequiredr¾   rÜ  z+file holding the API key (must be mode 600)ÚimagezAsmall image models: classify a picture, or generate one (Part 2c)r{  rg  r  )r¾   rr   z:classify: an image file. generate: a text prompt in quotesrÙ  zFmodel folder (default: models/vit-base-patch16-224 or models/sd-turbo)z--toprZ   z!classify: how many labels to showz --stepsz1generate: denoising steps (sd-turbo needs 1 to 4)z
+--guidancerË  z*generate: prompt strength (0 for sd-turbo)z--sizer
+   z$generate: width and height in pixelsrß  r   z--outz	image.pngrÝ  r¡   r   z!-1 = use a GPU if torch finds onerÞ  r»  )z-hz--helpzvit-base-patch16-224zsd-turbo)ré  rê  rì  r\  rî  )ÚargparseÚArgumentParserÚadd_subparsersÚ
+add_parserrä  r%  rë  rL   Úargvr[   Ú
+parse_argsrR  Ú
+print_helprg   r–   r—   rÆ   r{  rU  rW  rÕ  rf  rŠ  )
+ré   r  rç  r@  r
+  r2   r   r#   Úimró  r  r   r   r   ÚmainR  sT   !
+
+ r÷  Ú__main__rÝ   )TNNN)NNN)rZ   )nr-  rï  ræ  rÂ  r<  ÚiorN  r  r¥  r\   Úoperatorr  r–   rS   r   r‘  rL   r"  r|   Úurllib.errorrD   Úurllib.parseÚurllib.requestr°  Ú
+http.serverr   r   r   r  r5  r6  r    r,   rY   rb   rd   r‰   rÓ   rÇ   rÜ   rë   rñ   rò   r.  r›  rœ  rÂ  rÛ  r  r   r
+  r  r  r7  r6  r9  rA  rB  r¯  rã  rÐ  rÒ  rÔ  rÜ  rß  rØ  r>  ÚAddr  ÚSubr  ÚMultÚmulÚDivÚ truedivÚPowÚpowÚModÚmodÚUSubÚnegÚUAddÚposrî  rè  rù  r?  r  r  r'  r+  r3  rP  r7  r8  r0  rB  rH  rU  rW  r^  rb  r  rf  rŠ  rŒ  r’  rÕ  r÷  r„   r   r   r   r   Ú<module>   sì   ,
+ý ö	S	:u;*(
+
+ü	2
+	U,
+	
+  þ	
+
+
+
+
+:ü+	
+ >
+W
+ÿ
