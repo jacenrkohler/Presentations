@@ -8,6 +8,10 @@ A harness becomes useful when other tools can reach it, and when it can reach ot
 - [macOS](LAB03_MacOS_Integrations_and_Tooling.md)
 - [Linux](LAB03_Linux_Integrations_and_Tooling.md)
 
+**Without the internet** (from a USB drive, or after you ran the pre-fetch script): [Windows](LAB03_Windows_Integrations_and_Tooling_OFFLINE.md) · [macOS](LAB03_MacOS_Integrations_and_Tooling_OFFLINE.md) · [Linux](LAB03_Linux_Integrations_and_Tooling_OFFLINE.md)
+
+**Pre-fetch scripts** (download every file for this lab into `Downloads/<OS>`; each runs on any operating system): Windows: [.sh](LAB03_Windows_pre-fetch.sh) [.ps1](LAB03_Windows_pre-fetch.ps1) [.py](LAB03_Windows_pre-fetch.py) · macOS: [.sh](LAB03_MacOS_pre-fetch.sh) [.ps1](LAB03_MacOS_pre-fetch.ps1) [.py](LAB03_MacOS_pre-fetch.py) · Linux: [.sh](LAB03_Linux_pre-fetch.sh) [.ps1](LAB03_Linux_pre-fetch.ps1) [.py](LAB03_Linux_pre-fetch.py)
+
 | Part | What you do | In the room? |
 |---|---|---|
 | [Part 1](#part-1-the-harness-in-vs-code) | Connect the harness to VS Code and have a local model write "Hello, World" in Python | Yes |
@@ -17,7 +21,7 @@ Checkpoint: `hello.py` written by a local model and run successfully, with the t
 
 **What you need:** Lab 1 done (the harness and the Part 1 models in the `Lab01` folder, next to this `Lab03` folder), VS Code with the Continue extension (`python3 prefetch_lab3.py` installs it), and for Part 2, Obsidian (https://obsidian.md/download, free for personal use). No GPU is required; every harness command below takes `--gpu-layers -1` if you installed the GPU builds in Lab 1, Part 0e. On Windows use `py -3` in place of `python3`.
 
-**Files in this folder:** this README and the step-by-step walkthroughs for each operating system (`LAB03_Windows_Integrations_and_Tooling.md`, `LAB03_MacOS_Integrations_and_Tooling.md`, `LAB03_Linux_Integrations_and_Tooling.md`). Each walkthrough starts with Part 0, the setup. Lab 3 has no scripts of its own: it uses `Lab01/harness.py`.
+**Files in this folder:** this README and the step-by-step walkthroughs for each operating system (`LAB03_Windows_Integrations_and_Tooling.md`, `LAB03_MacOS_Integrations_and_Tooling.md`, `LAB03_Linux_Integrations_and_Tooling.md`). Each walkthrough starts with Part 0, the setup. Lab 3 uses `Lab01/harness.py`. The pre-fetch scripts are the only scripts in this folder.
 
 ## Part 1. The harness in VS Code
 

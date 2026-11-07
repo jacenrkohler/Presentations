@@ -26,15 +26,22 @@ This lab also uses Open WebUI ([documentation](https://docs.openwebui.com/)) in 
 
 ### Part 0b: Get the files
 
+**Pre-fetch script (to work without the internet).** The scripts [LAB04_MacOS_pre-fetch.sh](LAB04_MacOS_pre-fetch.sh), [LAB04_MacOS_pre-fetch.ps1](LAB04_MacOS_pre-fetch.ps1) and [LAB04_MacOS_pre-fetch.py](LAB04_MacOS_pre-fetch.py) in the `Lab04` folder download every file that this lab needs on macOS: installers, Python packages, models, Docker images and Ollama models. The files go into the folder `Downloads/MacOS` in the `Ai-workshop` folder. Files that are already there are skipped, so you can run a script again after an interruption. In Terminal, in the `Lab04` folder, do one of these commands:
+
+```
+bash LAB04_MacOS_pre-fetch.sh
+python3 LAB04_MacOS_pre-fetch.py
+```
+
+Then follow [LAB04_MacOS_Logging_and_Compliance_OFFLINE.md](LAB04_MacOS_Logging_and_Compliance_OFFLINE.md) instead of this file. It installs everything from the downloaded files. To see what is missing first, add `--dry-run`. For the optional files, add `--optional`. For the NVIDIA GPU files, add `--gpu`. The script `LAB1-4_MacOS_pre-fetch` in the `Ai-workshop` folder downloads the files for Labs 1 to 4 together.
+
 1. Get the lab files. Download [the ZIP file](https://github.com/jacenrkohler/Presentations/archive/refs/heads/main.zip) from [GitHub](https://github.com/jacenrkohler/Presentations/tree/main/Ai-workshop). Extract it. Use the `Ai-workshop` folder. Put it in a folder that has no spaces in its path, for example `<HOME_DIR>/ai-workshop`.
-2. Start Docker Desktop.
-3. In Terminal, go to the `prefetch` folder and do this command:
+2. This lab uses the Lab 1 models. Do Lab 1, Part 0b first.
+3. Start Docker Desktop. Download the Open WebUI image ([Open WebUI](https://github.com/open-webui/open-webui/pkgs/container/open-webui)):
 
    ```
-   python3 prefetch_lab4.py
+   docker pull ghcr.io/open-webui/open-webui:main
    ```
-
-   It downloads the Open WebUI image. The models come from Lab 1. If it stops, do the command again. It continues from the last file.
 
 ### Part 0c: Configure
 
@@ -126,9 +133,15 @@ The file uses comma-separated values (CSV). It has one header row and one row fo
 
    GPU option: add `--gpu-layers -1` to the command.
 
-2. In each chat, ask some questions. Include one question with a comma, a quotation mark and two lines. Type `/quit`.
-3. Open the `logs` folder. Open one file in Numbers, Excel or LibreOffice Calc. Open one file in a text editor.
-4. Answer these questions in your workbook:
+2. In each chat, ask some questions. Type `/quit`.
+3. A chat reads one line for each prompt. To send a question with a comma, a quotation mark and two lines, use `ask` with the file `two_line_question.txt` from the `Lab04` folder:
+
+   ```
+   python3 harness.py ask --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --log-dir ../logs --file ../Lab04/two_line_question.txt
+   ```
+
+4. Open the `logs` folder. Open one file in Numbers, Excel or LibreOffice Calc. Open one file in a text editor.
+5. Answer these questions in your workbook:
    1. Which response took the most time? Which model wrote it?
    2. Which session used the most tokens? How many were reasoning tokens?
    3. Is the question with a comma and two lines in one cell?

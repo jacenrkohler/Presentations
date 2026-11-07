@@ -1,177 +1,217 @@
-# Pre-work downloads and installations: macOS
+# Pre-work: downloads and installations (macOS)
 
-This guide gets a Mac ready for Labs 1 to 4 of the BSidesDFW 2026 workshop "Under the Hood of LLMs". When you finish, every lab runs **offline**, except the optional parts that use cloud models. Allow one to two hours, most of it waiting for downloads (about 15 GB). Do it at home: the venue Wi-Fi will not keep up.
+This guide prepares your computer for Labs 1 to 4 of the BSidesDFW 2026 workshop *Under the Hood of AI: Run, Measure, Secure, and Break Them*. After you complete it, Labs 1 to 4 operate **offline**. Only the optional parts with cloud models need the internet.
 
-You need: a recent macOS on an Apple Silicon (M1 or newer) or Intel Mac; 16 GB of RAM; 25 GB of free disk; an admin account. No separate GPU is required; Apple Silicon's GPU is used automatically where it helps.
+Do this guide at home. It takes one to two hours. Most of this time is for downloads (approximately 15 GB). The Wi-Fi at the workshop is not sufficient for these downloads.
 
-Run commands in the **Terminal** app (Applications, Utilities, Terminal).
+You need:
 
-| Step | What |
+- macOS on Apple silicon (M1 or newer) or an Intel Mac
+- 16 GB of RAM
+- 25 GB of free disk space
+- Administrator rights
+
+A GPU is not necessary. All commands are for a computer without a GPU. Section 7 gives the GPU options.
+
+Use Terminal for all commands.
+
+| Section | Contents |
 |---|---|
-| [1](#1-downloads) | Downloads (links) |
-| [2](#2-install-the-command-line-tools-and-python) | Install the command line tools and Python |
-| [3](#3-install-docker-desktop) | Install Docker Desktop |
-| [4](#4-install-vs-code-and-continue) | Install VS Code and Continue |
-| [5](#5-get-the-lab-files) to [7](#7-download-the-models-and-container-images) | Lab files, Python libraries, models and images |
-| [8](#8-configure-and-check) | Configure and check |
-| [9](#9-test-that-it-works-offline) | Test that it works offline |
-| [10](#10-troubleshooting) | Troubleshooting |
+| 1 | Download links |
+| 2 | Prepare macOS |
+| 3 | Install Python |
+| 4 | Install Docker, VS Code and Continue |
+| 5 | Get the lab files |
+| 6 | Install the Python packages |
+| 7 | GPU software (optional) |
+| 8 | Download the models and the Docker images |
+| 9 | Configure and make sure that the setup is correct |
+| 10 | Make sure that the labs operate offline |
+| 11 | Problems and solutions |
 
-## 1. Downloads
+## 1. Download links
 
-| Software | Download | Official install guide |
-|---|---|---|
-| Xcode Command Line Tools (compilers, needed by some Python packages) | Built into macOS: `xcode-select --install` (Step 2) | [Apple: Command Line Tools](https://developer.apple.com/xcode/resources/) |
-| Python 3.10 or newer (3.12 recommended) | [python.org/downloads/macos](https://www.python.org/downloads/macos/) (universal installer) | [Using Python on macOS](https://docs.python.org/3/using/mac.html) |
-| Docker Desktop (choose Apple silicon or Intel) | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) | [Install Docker Desktop on Mac](https://docs.docker.com/desktop/setup/install/mac-install/) |
-| VS Code | [code.visualstudio.com/download](https://code.visualstudio.com/download) | [VS Code on macOS](https://code.visualstudio.com/docs/setup/mac) |
-| Continue extension for VS Code | [VS Code Marketplace: Continue](https://marketplace.visualstudio.com/items?itemName=Continue.continue) | [Continue docs](https://docs.continue.dev) |
-| Homebrew (optional package manager) | [brew.sh](https://brew.sh) | [Homebrew installation](https://docs.brew.sh/Installation) |
+| Software | Download | Installation instructions | Configuration |
+|---|---|---|---|
+| Python 3.10 or newer | [python.org/downloads/macos](https://www.python.org/downloads/macos/) | [Using Python on macOS](https://docs.python.org/3/using/mac.html) | After the installation, open the Python folder in **Applications** and start **Install Certificates.command** |
+| Docker Desktop (Apple silicon or Intel) | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) | [Install Docker Desktop on Mac](https://docs.docker.com/desktop/setup/install/mac-install/) | In **Settings, Resources**, set the memory limit to 8 GB or more. A Docker account is not necessary |
+| VS Code | [code.visualstudio.com/download](https://code.visualstudio.com/download) | [VS Code on macOS](https://code.visualstudio.com/docs/setup/mac) | Open the Command Palette (Cmd+Shift+P) and do **Shell Command: Install 'code' command in PATH** |
+| Continue extension for VS Code | [VS Code Marketplace: Continue](https://marketplace.visualstudio.com/items?itemName=Continue.continue), or `python3 prefetch_lab3.py` | [Continue documentation](https://docs.continue.dev/) | Lab 3, Part 1b |
 
-## 2. Install the command line tools and Python
+Optional software for the optional parts of Labs 1 to 4:
 
-1. Install Apple's command line tools (compilers some Python packages need):
+| Software | Download | Installation instructions | Configuration |
+|---|---|---|---|
+| Obsidian (optional, Lab 3, Part 2) | [obsidian.md/download](https://obsidian.md/download) | [Obsidian Help](https://help.obsidian.md/) | Make a vault with the name `AI Vault` in your `Documents` folder |
+| Node.js 22 or newer (optional, for the CLIs and MCP) | [nodejs.org/en/download](https://nodejs.org/en/download) | [nodejs.org/en/download](https://nodejs.org/en/download) | None. To examine the version, do `node --version` |
 
-   ```
-   xcode-select --install
-   ```
+## 2. Prepare macOS
 
-   Click **Install** in the window that opens. If it says they are already installed, you are done.
-2. Run the Python installer from Section 1.
-3. When it finishes, open **Applications, Python 3.x** and double-click **Install Certificates.command**. This lets Python verify secure websites; without it, the download script fails with certificate errors.
-4. Check it in a new Terminal window: `python3 --version` prints 3.10 or higher.
+1. Find the type of your Mac. Click the Apple menu, then **About This Mac**. **Chip: Apple M1** (or newer) is Apple silicon. **Processor: Intel** is an Intel Mac.
+2. Download the version of Docker Desktop for your type of Mac.
 
-(Homebrew users can run `brew install python@3.12` instead of steps 2 and 3.)
+## 3. Install Python
 
-## 3. Install Docker Desktop
+1. Start the Python installer from Section 1.
+2. After the installation, open the Python folder in **Applications**. Start **Install Certificates.command**.
+3. Open a new Terminal window. Do `python3 --version`. Make sure that it shows 3.10 or newer.
 
-1. Open the `.dmg` for your chip (Apple silicon or Intel) and drag Docker to Applications.
-2. Start Docker from Applications, accept the terms, and allow the helper it asks to install. You can skip signing in; no Docker account is needed for these labs.
-3. Configure it (gear icon, **Settings, Resources**): give it at least **8 GB of memory** and 4 CPUs, then **Apply and restart**.
-4. Check it:
+## 4. Install Docker, VS Code and Continue
 
-   ```
-   docker run --rm hello-world
-   docker compose version
-   ```
+**Docker**
 
-   The first prints "Hello from Docker!".
+1. Open the Docker Desktop file. Drag Docker to **Applications**. Start Docker from **Applications** and accept the terms. A Docker account is not necessary.
+2. In **Settings, Resources**, set the memory limit to 8 GB or more.
 
-Docker on a Mac cannot use the GPU, so containers run on the CPU. The harness itself (outside Docker) can use Apple Silicon's GPU; see the GPU note in Step 6.
+Do these commands. The first command shows "Hello from Docker!". The second command shows a version.
 
-## 4. Install VS Code and Continue
+```
+docker run --rm hello-world
+docker compose version
+```
 
-1. Open the VS Code download (a `.zip`) and drag **Visual Studio Code** to Applications.
-2. Open VS Code, open the Command Palette (Cmd+Shift+P), and run **Shell Command: Install 'code' command in PATH**.
-3. Open **Extensions** (Cmd+Shift+X), search for **Continue** (publisher: Continue), and install it.
+**VS Code and Continue**
 
-**macOS firewall.** In Labs 3 and 4 the harness listens for Open WebUI on port 8000. If macOS asks whether Python may accept incoming connections, click **Allow**.
+1. Install VS Code from Section 1. Open the Command Palette (Cmd+Shift+P) and do **Shell Command: Install 'code' command in PATH**.
+2. Open VS Code. Open **Extensions** (Cmd+Shift+X). Search for **Continue** (publisher: Continue). Install it.
+
 ## 5. Get the lab files
 
-1. Download the handout: **[add the link]**.
-2. Unzip it into a folder with no spaces in its path, for example `~/ai-workshop`.
-3. Check that you have these folders: `lab1`, `lab2`, `lab4`, `labs`, `homework`, `prefetch`. Keep them together; later labs use files from `lab1`.
+1. Download [the ZIP file](https://github.com/jacenrkohler/Presentations/archive/refs/heads/main.zip) from [GitHub](https://github.com/jacenrkohler/Presentations/tree/main/Ai-workshop).
+2. Extract it. Use the `Ai-workshop` folder.
+3. Put the folder in a location that has no spaces in its path, for example `<HOME_DIR>/ai-workshop`.
+4. Make sure that you have these folders. Keep them together. The labs use files from `Lab01`.
 
-## 6. Install the Python libraries
+| Folder | Contents |
+|---|---|
+| `Lab01` to `Lab05` | The lab instructions. Each folder has one file for each operating system. Use the files with `MacOS` in the name. Some folders also contain lab files (the next rows) |
+| `Lab01` (also) | `harness.py`, `inspect_model.py`, `compose.yaml` and the Python requirements. The models go into `Lab01/models` |
+| `Lab02` (also) | `bench.py` and the benchmark prompts |
+| `Lab04` (also) | `syslog_listen.py` |
+| `prefetch` | The download scripts |
 
-In a terminal, go to the `lab1` folder and make a virtual environment, so these packages stay separate from the rest of your system:
+## 6. Install the Python packages
+
+In Terminal, go to the `Lab01` folder. Do these commands:
 
 ```
 python3 -m venv .venv
 source .venv/bin/activate
-```
-
-Activate it again (the second line) in every new terminal you use for the labs. Your prompt shows `(.venv)` when it is active. Then install:
-
-```
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 python3 -m pip install torch
 python3 -m pip install -r requirements-hf.txt
 ```
 
-What gets installed:
+If `llama-cpp-python` does not install (pip starts to compile it and fails), continue without it. You can do most of Lab 1 with the safetensors model, the ONNX model and Ollama.
 
-| Package | What it does | Used in |
+Activate the virtual environment again in each new Terminal window. The prompt shows `(.venv)` when it is active.
+
+| Package | Function | Labs |
 |---|---|---|
-| `llama-cpp-python` | Runs GGUF models inside the harness (llama.cpp) | Labs 1 to 4 |
-| `gguf` | Reads GGUF files for the model inspector | Lab 1 |
-| `numpy` | Numbers and arrays | All labs |
-| `safetensors` | Reads safetensors model files | Lab 1 |
-| `onnx` | Reads ONNX model files for the inspector | Lab 1 |
-| `onnxruntime` | Runs ONNX models | Labs 1 and 2 |
-| `transformers` | Tokenizers and chat templates; runs safetensors models | Labs 1 and 2 |
-| `jinja2` | Chat templates | Labs 1 and 2 |
-| `torch` (CPU build) | Runs safetensors and image models | Labs 1 and 2 |
-| `accelerate` | Helps transformers load models | Lab 1 |
-| `diffusers` | Image generation (optional Part 2c) | Lab 1 |
-| `pillow` | Images (optional Part 2c) | Lab 1 |
+| `llama-cpp-python` | Operates GGUF models in the harness (llama.cpp) | 1 to 4 |
+| `gguf` | Reads GGUF files for `inspect_model.py` | 1 |
+| `numpy` | Numbers and arrays | 1 to 4 |
+| `safetensors` | Reads safetensors files | 1 |
+| `onnx`, `onnxruntime` | Read and operate ONNX models | 1, 2 |
+| `transformers`, `jinja2` | Tokenizers and chat templates. Operates safetensors models | 1, 2 |
+| `torch` (CPU build) | Operates safetensors models and image models | 1, 2 |
+| `accelerate`, `diffusers`, `pillow` | Image models (optional, Lab 1, Part 2c) | 1 |
 
-Everything else the labs use (`csv`, `json`, `socket`, `http.server`, and so on) comes with Python. The lab files `harness.py`, `inspect_model.py`, `bench.py` and `syslog_listen.py` need no other packages.
-
-Check it: `python3 -c "import llama_cpp, gguf, onnxruntime, transformers, torch; print('ok')"` prints `ok`.
-
-On Apple Silicon, `llama-cpp-python` and `torch` use the Mac's GPU (Metal) automatically when you add `--gpu-layers -1` to harness commands. See "Optional: use a GPU" in `lab1/README.md` (Setup) for the Metal build of `llama-cpp-python`.
-
-**If `llama-cpp-python` will not install** (most often on Intel Macs, where pip compiles it): make sure Step 2's command line tools are installed and try again. If it still fails, carry on: you can do most of Lab 1 with the safetensors and ONNX models and with Ollama, and pair up with a neighbor for the GGUF steps.
-
-## 7. Download the models and container images
-
-Start Docker first. Then, in a terminal in the `prefetch` folder (with the virtual environment active):
+Python contains all other modules that the labs use. To make sure that the installation is correct, do this command. It shows `ok`:
 
 ```
-python3 prefetch_all.py
+python3 -c "import llama_cpp, gguf, onnxruntime, transformers, torch; print('ok')"
 ```
 
-It downloads everything below, about 15 GB, into the `lab1` folder and into Docker. Run it again if it stops: finished items are skipped and partial downloads resume. `--dry-run` shows the sizes first; `--background` runs it hidden, and `python3 ai_prefetch.py --status --watch` shows progress.
+## 7. GPU software (optional)
 
-### Models and container images
+Do this step only if your computer has a GPU. Do it before the workshop, because some builds take 10 minutes or more.
 
-`prefetch_all.py` downloads all of these. The links are here so you know exactly what you are getting, and so you can download a file by hand if the script fails (put it at the path shown, inside the `lab1` folder).
+1. For GGUF models (`llama-cpp-python`):
 
-**Model files** (saved in `lab1/models/`):
+   | GPU | Command (it replaces the CPU build) |
+   |---|---|
+   | Apple Silicon (Metal) | `python3 -m pip install llama-cpp-python --force-reinstall --no-cache-dir --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/metal` |
 
-| File or folder | Format | Size | Source | Used in |
+   Intel Macs: there is no GPU option. Use the CPU build.
+
+2. For safetensors models and image models (`torch`): Apple Silicon: the standard `torch` package uses the GPU (Metal) already. Do not change it.
+3. For ONNX models (`onnxruntime`): Apple Silicon: the standard `onnxruntime` package can use Core ML. Do not change it.
+4. For the Docker runtimes: Docker on macOS cannot use the GPU. For GPU speed, use the native Ollama app for macOS (https://ollama.com/download) and the KoboldCpp program.
+
+GPU software instructions: [llama-cpp-python](https://github.com/abetlen/llama-cpp-python#installation), [PyTorch](https://pytorch.org/get-started/locally/), [ONNX Runtime](https://onnxruntime.ai/docs/install/), [NVIDIA drivers](https://www.nvidia.com/en-us/drivers/).
+
+If a GPU installation fails, install the CPU build again:
+
+```
+python3 -m pip install --force-reinstall -r requirements.txt
+```
+
+## 8. Download the models and the Docker images
+
+**To work without the internet at the workshop (optional).** The scripts `LAB1-4_MacOS_pre-fetch.sh`, `LAB1-4_MacOS_pre-fetch.ps1` and `LAB1-4_MacOS_pre-fetch.py` in the `Ai-workshop` folder download every file for Labs 1 to 4: installers, Python packages, models, Docker images and Ollama models. The files go into the folder `Downloads/MacOS` in the `Ai-workshop` folder. Files that are already there are skipped, so you can run a script again after an interruption. Start Docker Desktop. Then, in Terminal, in the `Ai-workshop` folder, do one of these commands:
+
+```
+bash LAB1-4_MacOS_pre-fetch.sh
+python3 LAB1-4_MacOS_pre-fetch.py
+```
+
+At the workshop, use the `..._OFFLINE.md` walkthrough in each lab folder. To see what is missing first, add `--dry-run`. For the optional files (image models and Ministral 3), add `--optional`. For the NVIDIA GPU files, add `--gpu`. Each lab folder also has pre-fetch scripts for that lab only.
+
+Or do the steps by hand:
+
+1. Start Docker Desktop.
+2. In the `prefetch` folder, with the virtual environment active, do this command:
+
+   ```
+   python3 prefetch_all.py
+   ```
+
+   It downloads all of the items in the tables below (approximately 15 GB) into the `Lab01` folder and into Docker. If it stops, do the command again. It continues from the last file. To see the sizes first, add `--dry-run`. To operate it in the background, add `--background`. To see the progress, do `python3 ai_prefetch.py --status --watch`.
+
+3. When it is complete, go to the `Lab01` folder and do `docker compose --profile ollama down`.
+
+**Model files** (in `Lab01/models/`):
+
+| File or folder | Format | Size | Source | Labs |
 |---|---|---|---|---|
-| `qwen2.5-1.5b-instruct-q4_k_m.gguf` | GGUF, 4-bit | about 1.1 GB | [Qwen/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) | Labs 1 to 4 |
-| `qwen2.5-0.5b-instruct/` (config, tokenizer, `model.safetensors`) | safetensors, 16-bit | about 1.0 GB | [Qwen/Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) | Labs 1 to 3 |
-| `qwen2.5-0.5b-instruct-onnx/` (config, tokenizer, `onnx/model_quantized.onnx`) | ONNX, 8-bit | about 0.6 GB | [onnx-community/Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct) | Labs 1 to 3 |
-| `Qwen3-4B-Q4_K_M.gguf` | GGUF, 4-bit | about 2.5 GB | [ggml-org/Qwen3-4B-GGUF](https://huggingface.co/ggml-org/Qwen3-4B-GGUF) | Labs 1 to 4 |
+| `qwen2.5-1.5b-instruct-q4_k_m.gguf` | GGUF, 4-bit | 1.1 GB | [Qwen/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) | 1 to 4 |
+| `qwen2.5-0.5b-instruct/` | safetensors, 16-bit | 1.0 GB | [Qwen/Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) | 1 to 3 |
+| `qwen2.5-0.5b-instruct-onnx/` | ONNX, 8-bit | 0.6 GB | [onnx-community/Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct) | 1 to 3 |
+| `Qwen3-4B-Q4_K_M.gguf` | GGUF, 4-bit | 2.5 GB | [ggml-org/Qwen3-4B-GGUF](https://huggingface.co/ggml-org/Qwen3-4B-GGUF) | 1 to 4 |
 
-All four are Apache-2.0 licensed and need no Hugging Face account.
+These four models have the Apache 2.0 license. A Hugging Face account is not necessary.
 
 **Docker images:**
 
-| Image | Size | Page | Used in |
+| Image | Size | Page | Labs |
 |---|---|---|---|
-| `ollama/ollama:latest` | about 1.8 GB | [Docker Hub](https://hub.docker.com/r/ollama/ollama) | Labs 1 and 2 |
-| `ghcr.io/open-webui/open-webui:main` | about 3.5 GB | [GitHub](https://github.com/open-webui/open-webui) | Labs 1, 3 and 4 |
-| `koboldai/koboldcpp:latest` | about 1.5 GB | [Docker Hub](https://hub.docker.com/r/koboldai/koboldcpp) | Lab 1 Part 4b (optional) |
-| `ghcr.io/ggml-org/llama.cpp:server` | about 0.3 GB | [GitHub](https://github.com/ggml-org/llama.cpp) | Lab 1 Part 4c (optional) |
+| `ollama/ollama:latest` | 1.8 GB | [Docker Hub](https://hub.docker.com/r/ollama/ollama) | 1, 2 |
+| `ghcr.io/open-webui/open-webui:main` | 3.5 GB | [Open WebUI documentation](https://docs.openwebui.com/) | 1, 4 |
+| `koboldai/koboldcpp:latest` | 1.5 GB | [Docker Hub](https://hub.docker.com/r/koboldai/koboldcpp) | 1 (Part 4b, optional) |
+| `ghcr.io/ggml-org/llama.cpp:server` | 0.3 GB | [llama.cpp Docker documentation](https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md) | 1 (Part 4c, optional) |
 
-**Models inside Ollama** (stored in the Docker volume `lab1_ollama-data`):
+**Models in Ollama** (in the Docker volume `lab01_ollama-data`):
 
-| Model | Size | Page | Used in |
+| Model | Size | Page | Labs |
 |---|---|---|---|
-| `qwen2.5:1.5b` | about 1.0 GB | [ollama.com/library/qwen2.5](https://ollama.com/library/qwen2.5) | Labs 1 and 2 |
-| `qwen3:1.7b` | about 1.4 GB | [ollama.com/library/qwen3](https://ollama.com/library/qwen3) | Lab 2 |
+| `qwen2.5:1.5b` | 1.0 GB | [ollama.com/library/qwen2.5](https://ollama.com/library/qwen2.5) | 1, 2 |
+| `qwen3:1.7b` | 1.4 GB | [ollama.com/library/qwen3](https://ollama.com/library/qwen3) | 2 |
 
-**Optional extras** (only for optional parts; download them now if you want them offline):
+**Optional files** (only for the optional parts):
 
-| What | Command (in the `prefetch` folder) | Size |
+| Item | Command in the `prefetch` folder | Size |
 |---|---|---|
-| Image models for Lab 1, Part 2c: [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224) and [stabilityai/sd-turbo](https://huggingface.co/stabilityai/sd-turbo) (non-commercial and small-business license) | `python3 prefetch_lab1images.py` | about 3 GB |
-| Ministral 3 at about 1 GB for Lab 1 Part 1e and Lab 2 Part 2f: [unsloth/Ministral-3-3B-Instruct-2512-GGUF](https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF) | `python3 prefetch_lab1ministral.py` | about 3.2 GB |
-| Obsidian, for Lab 3 Part 2 | [obsidian.md/download](https://obsidian.md/download) | about 0.3 GB |
+| Image models for Lab 1, Part 2c: [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224) and [stabilityai/sd-turbo](https://huggingface.co/stabilityai/sd-turbo) | `python3 prefetch_lab1images.py` | 3 GB |
+| Ministral 3 for Lab 1, Part 1e, and Lab 2, Part 2f: [unsloth/Ministral-3-3B-Instruct-2512-GGUF](https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF) | `python3 prefetch_lab1ministral.py` | 3.2 GB |
 
-When it finishes, stop the Ollama container it started: in the `lab1` folder, `docker compose --profile ollama down`.
+## 9. Configure and make sure that the setup is correct
 
-## 8. Configure and check
+Do these steps one time, in the `Lab01` folder, with the virtual environment active. Some steps also download items that need the internet. Do them before you go offline.
 
-Run these once, in a terminal in the `lab1` folder with the virtual environment active. Several of them also finish first-time setup that needs the internet, so do them before you go offline.
-
-1. **The harness:** `python3 harness.py ask --backend echo "hello"` prints `(echo) You said: hello`.
-2. **The three model formats:**
+1. **The harness.** Do `python3 harness.py ask --backend echo "hello"`. It shows `(echo) You said: hello`.
+2. **The three model formats.** Do these commands. Each `ask` command gives an answer in one or two minutes on the CPU of a laptop.
 
    ```
    python3 inspect_model.py compare models/qwen2.5-1.5b-instruct-q4_k_m.gguf models/qwen2.5-0.5b-instruct models/qwen2.5-0.5b-instruct-onnx
@@ -180,37 +220,60 @@ Run these once, in a terminal in the `lab1` folder with the virtual environment 
    python3 harness.py ask --model models/qwen2.5-0.5b-instruct-onnx "Say hello in five words."
    ```
 
-   Each `ask` should answer within a minute or two on a laptop CPU.
-3. **Ollama and Open WebUI (Labs 1, 3 and 4):**
-   1. `docker compose --profile ollama up -d`
-   2. `docker compose exec ollama ollama list` shows `qwen2.5:1.5b` and `qwen3:1.7b`.
-   3. Open http://localhost:3000. The first start can take a few minutes. Create the first account: it becomes the **local admin**, stored only inside the container. Use any email and a password you will remember.
-   4. Choose `qwen2.5:1.5b` and say hello.
-   5. `docker compose --profile ollama down`
-4. **The benchmark (Lab 2):** start Ollama again (`docker compose --profile ollama up -d`), then in the `lab2` folder: `python3 bench.py run --only math --target ollama:qwen2.5:1.5b --no-warmup`. You should see one PASS or FAIL row. Then stop Ollama.
-5. **VS Code and Continue (Lab 3):** open VS Code, click the Continue icon in the side bar, and close any sign-in prompt (you do not need a Continue account for local models). Continue creates its settings file; you will add the harness to it in Lab 3.
-6. **The syslog listener (Lab 4):** in the `lab4` folder, `python3 syslog_listen.py` says it is listening on port 5514. Stop it with Ctrl-C.
-7. **The log folder (Lab 4):** `python3 harness.py ask --backend echo --log-dir ../logs "test"` creates a `logs` folder with one `.log` file in it.
+3. **Ollama and your Open WebUI admin account** (Labs 1 and 4):
+   1. Do `docker compose --profile ollama up -d`.
+   2. Do `docker compose exec ollama ollama list`. It shows `qwen2.5:1.5b` and `qwen3:1.7b`.
+   3. Open http://localhost:3000. The first start can take some minutes. Make the first account with `<ADMIN_EMAIL>` and `<ADMIN_PASSWORD>`. This account is the local admin. It stays in the container on your computer.
+   4. Select `qwen2.5:1.5b` and send "hello".
+4. **The benchmark** (Lab 2). Keep Ollama on. In the `Lab02` folder, do `python3 bench.py run --only math --target ollama:qwen2.5:1.5b --no-warmup`. It shows one PASS or FAIL row. Then, in the `Lab01` folder, do `docker compose --profile ollama down`.
+5. **The harness server** (Labs 3 and 4). Do `python3 harness.py serve --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --port 13370`. Open http://localhost:13370/v1/models. It shows one model. Push Ctrl-C.
+6. **VS Code and Continue** (Lab 3). Open VS Code. Click the Continue icon in the side bar. Close the sign-in prompt. A Continue account is not necessary for local models. Continue makes its configuration file `<HOME_DIR>/.continue/config.yaml`.
+7. **The syslog listener** (Lab 4). In the `Lab04` folder, do `python3 syslog_listen.py`. It shows that it listens on port 13379. Push Ctrl-C.
+8. **The log folder** (Lab 4). Do `python3 harness.py ask --backend echo --log-dir ../logs "test"`. It makes the folder `logs` with one `.log` file.
+9. **The firewall** (Lab 4). Open WebUI in Docker connects to the harness on your computer. The first time that you start `harness.py serve` with `--host 0.0.0.0`, macOS asks if Python can accept incoming network connections. Click **Allow**.
 
-## 9. Test that it works offline
+**Ports that the labs use.** Docker publishes its ports on `127.0.0.1` only.
 
-Everything in Labs 1 to 4 runs on your laptop, except the optional parts that use cloud models (Anthropic, OpenAI, Gemini, Copilot) and the optional Security Onion server in Lab 4. To prove it before the workshop:
+| Port | Service | Lab |
+|---|---|---|
+| 3000 | Open WebUI | 1, 4 |
+| 11434 | Ollama | 1, 2 |
+| 5001 | KoboldCpp (optional) | 1 (Part 4b) |
+| 8080 | llama.cpp server (optional) | 1 (Part 4c) |
+| 13370, 13371 | `harness.py serve` | 3, 4 |
+| 13372 to 13375 | `harness.py serve` with a cloud model (optional) | 4 (Parts 3b to 3e) |
+| 13379 | `syslog_listen.py` | 4 |
 
-1. Turn off Wi-Fi (and unplug any network cable).
-2. Repeat checks 1 to 4 and 6 in Section 8.
-3. Turn Wi-Fi back on.
+## 10. Make sure that the labs operate offline
 
-If anything fails offline, it is still trying to download something: run `python3 prefetch_all.py` again while online, and post the error in the Discord forum channel.
+Labs 1 to 4 operate on your computer. Only the optional cloud models and the optional Security Onion server (Lab 4) need a network.
 
-Things that need the internet even after setup: the cloud models, the official AI CLIs and desktop apps, Lakera's website, Security Onion (if your instructor runs one on the network), and installing anything new.
+1. Turn off Wi-Fi. Disconnect the network cable.
+2. Do checks 1 to 5 and 7 in Section 9 again.
+3. Turn on Wi-Fi again.
 
-## 10. Troubleshooting
+If a check fails offline, the software tries to download an item. Do `python3 prefetch_all.py` again while you are online. If the problem continues, send the error to the Discord forum channel.
 
-| Problem | Fix |
+These items need the internet after the setup: the cloud models, the official AI CLIs and desktop apps, the Surprise Bonus Lab, Security Onion, and new installations.
+
+## 11. Problems and solutions
+
+| Problem | Solution |
 |---|---|
-| `CERTIFICATE_VERIFY_FAILED` while downloading | Run **Install Certificates.command** from the Python folder in Applications (Step 2) |
-| `xcrun: error: invalid active developer path` | Run `xcode-select --install` |
-| Docker is slow or a model is killed | Give Docker more memory (Step 3), and stop containers you are not using |
-| Open WebUI cannot reach the harness (Labs 3 and 4) | Start the harness with `--host 0.0.0.0`, and allow Python's incoming connections when macOS asks |
-| A download stops or fails | Run `python3 prefetch_all.py` again; it resumes |
-| `code` command not found | Run **Shell Command: Install 'code' command in PATH** in VS Code (Step 4) |
+| `python3` shows an old version | Open a new Terminal window after the installation. Do `which python3` |
+| SSL certificate errors during downloads | Start **Install Certificates.command** in the Python folder in **Applications** |
+| `llama-cpp-python` does not install (Intel Mac) | Install the Xcode command line tools: `xcode-select --install`. Then do the `requirements.txt` command again |
+| Docker is slow or stops | In Docker Desktop, **Settings, Resources**, set the memory limit to 8 GB or more |
+| Open WebUI cannot connect to the harness (Lab 4) | Start the harness with `--host 0.0.0.0`. Click **Allow** when macOS asks about incoming connections |
+| A download stops or fails | Do `python3 prefetch_all.py` again. It continues from the last file |
+
+### Placeholders
+
+Some commands contain placeholders. Replace each placeholder and its angle brackets with your value.
+
+| Placeholder | Your value |
+|---|---|
+| `<HOME_DIR>` | The full path of your home folder, for example `/Users/jsmith` |
+| `<ADMIN_EMAIL>` | The email of your Open WebUI admin account |
+| `<ADMIN_PASSWORD>` | The password of your Open WebUI admin account |
+

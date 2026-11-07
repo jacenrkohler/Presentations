@@ -30,17 +30,25 @@ For Part 4 (optional), install the official CLIs. Lab 1, Part 5 tells you how. S
 
 ### Part 0b: Get the files
 
+**Pre-fetch script (to work without the internet).** The scripts [LAB02_Windows_pre-fetch.sh](LAB02_Windows_pre-fetch.sh), [LAB02_Windows_pre-fetch.ps1](LAB02_Windows_pre-fetch.ps1) and [LAB02_Windows_pre-fetch.py](LAB02_Windows_pre-fetch.py) in the `Lab02` folder download every file that this lab needs on Windows: installers, Python packages, models, Docker images and Ollama models. The files go into the folder `Downloads/Windows` in the `Ai-workshop` folder. Files that are already there are skipped, so you can run a script again after an interruption. In PowerShell, in the `Lab02` folder, do one of these commands:
+
+```
+powershell -ExecutionPolicy Bypass -File .\LAB02_Windows_pre-fetch.ps1
+py -3 LAB02_Windows_pre-fetch.py
+```
+
+Then follow [LAB02_Windows_Benchmarking_Models_and_Harnesses_OFFLINE.md](LAB02_Windows_Benchmarking_Models_and_Harnesses_OFFLINE.md) instead of this file. It installs everything from the downloaded files. To see what is missing first, add `--dry-run`. For the optional files, add `--optional`. For the NVIDIA GPU files, add `--gpu`. The script `LAB1-4_Windows_pre-fetch` in the `Ai-workshop` folder downloads the files for Labs 1 to 4 together.
+
 1. Get the lab files. Download [the ZIP file](https://github.com/jacenrkohler/Presentations/archive/refs/heads/main.zip) from [GitHub](https://github.com/jacenrkohler/Presentations/tree/main/Ai-workshop). Extract it. Use the `Ai-workshop` folder. Put it in a folder that has no spaces in its path, for example `<HOME_DIR>\ai-workshop`.
-2. Start Docker Desktop.
-3. In PowerShell, go to the `prefetch` folder and do this command:
+2. This lab uses the Lab 1 models and Ollama. Do Lab 1, Part 0b first.
+3. Start Docker Desktop. In the `Lab01` folder, start Ollama and download the second model from the [Ollama library](https://ollama.com/library/qwen3) (1.4 GB):
 
    ```
-   py -3 prefetch_lab2.py
+   docker compose --profile ollama up -d
+   docker compose exec ollama ollama pull qwen3:1.7b
    ```
 
-   It downloads the Ollama model `qwen3:1.7b` (1.4 GB). The Lab 1 files are also necessary. If it stops, do the command again. It continues from the last file.
-
-4. Optional file (Part 2f): `prefetch_lab1ministral.py` (Ministral 3, 3.2 GB).
+4. Optional (Part 2f): the Ministral 3 files from Lab 1, Part 0b, step 4.
 
 ### Part 0c: Configure
 

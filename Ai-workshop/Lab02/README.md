@@ -8,6 +8,10 @@ A benchmark runs the same prompts the same way against different models, setting
 - [macOS](LAB02_MacOS_Benchmarking_Models_and_Harnesses.md)
 - [Linux](LAB02_Linux_Benchmarking_Models_and_Harnesses.md)
 
+**Without the internet** (from a USB drive, or after you ran the pre-fetch script): [Windows](LAB02_Windows_Benchmarking_Models_and_Harnesses_OFFLINE.md) · [macOS](LAB02_MacOS_Benchmarking_Models_and_Harnesses_OFFLINE.md) · [Linux](LAB02_Linux_Benchmarking_Models_and_Harnesses_OFFLINE.md)
+
+**Pre-fetch scripts** (download every file for this lab into `Downloads/<OS>`; each runs on any operating system): Windows: [.sh](LAB02_Windows_pre-fetch.sh) [.ps1](LAB02_Windows_pre-fetch.ps1) [.py](LAB02_Windows_pre-fetch.py) · macOS: [.sh](LAB02_MacOS_pre-fetch.sh) [.ps1](LAB02_MacOS_pre-fetch.ps1) [.py](LAB02_MacOS_pre-fetch.py) · Linux: [.sh](LAB02_Linux_pre-fetch.sh) [.ps1](LAB02_Linux_pre-fetch.ps1) [.py](LAB02_Linux_pre-fetch.py)
+
 | Part | What you do | In the room? |
 |---|---|---|
 | [Part 1](#part-1-add-metrics-to-the-harness) | Add metrics to `harness.py`: time and tokens, per prompt and per session | Yes |

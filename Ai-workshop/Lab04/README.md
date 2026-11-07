@@ -8,6 +8,10 @@ If an AI system is used at work, someone will ask: who asked it what, when, with
 - [macOS](LAB04_MacOS_Logging_and_Compliance.md)
 - [Linux](LAB04_Linux_Logging_and_Compliance.md)
 
+**Without the internet** (from a USB drive, or after you ran the pre-fetch script): [Windows](LAB04_Windows_Logging_and_Compliance_OFFLINE.md) · [macOS](LAB04_MacOS_Logging_and_Compliance_OFFLINE.md) · [Linux](LAB04_Linux_Logging_and_Compliance_OFFLINE.md)
+
+**Pre-fetch scripts** (download every file for this lab into `Downloads/<OS>`; each runs on any operating system): Windows: [.sh](LAB04_Windows_pre-fetch.sh) [.ps1](LAB04_Windows_pre-fetch.ps1) [.py](LAB04_Windows_pre-fetch.py) · macOS: [.sh](LAB04_MacOS_pre-fetch.sh) [.ps1](LAB04_MacOS_pre-fetch.ps1) [.py](LAB04_MacOS_pre-fetch.py) · Linux: [.sh](LAB04_Linux_pre-fetch.sh) [.ps1](LAB04_Linux_pre-fetch.ps1) [.py](LAB04_Linux_pre-fetch.py)
+
 | Part | What you do | In the room? |
 |---|---|---|
 | [Part 1](#part-1-a-csv-log-for-every-session) | A date-stamped CSV `.log` file for every harness session | Yes |

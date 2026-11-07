@@ -43,6 +43,9 @@ services:
       ENABLE_FORWARD_USER_INFO_HEADERS: "true"
       # Lab 4: Open WebUI's own audit log of requests and responses, in /app/backend/data/audit.log
       AUDIT_LOG_LEVEL: "REQUEST_RESPONSE"
+      # No downloads from Hugging Face at start (the labs do not use its document search), so it starts offline.
+      OFFLINE_MODE: "true"
+      HF_HUB_OFFLINE: "1"
     extra_hosts: ["host.docker.internal:host-gateway"]   # lets it reach the harness on Linux (Lab 3)
     volumes: ["webui-data:/app/backend/data"]
     mem_limit: 3g

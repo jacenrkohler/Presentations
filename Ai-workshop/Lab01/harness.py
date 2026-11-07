@@ -1438,6 +1438,13 @@ def cmd_serve(a):
                  "or serve a local model.")
     backend = make_backend(a)
     base = build_settings(a)
+    # --system: the server adds it to each request that has no system message of its own.
+    serve_system = a.system or None
+
+    def with_system(msgs):
+        if serve_system and not any(m["role"] == "system" for m in msgs):
+            return [{"role": "system", "content": serve_system}] + msgs
+        return msgs
     lock = threading.Lock()  # one generation at a time; a laptop has one set of cores
     model_id = a.served_name or backend.model
     # A cloud model spends your key. On a shared Linux machine any other user can reach
@@ -1510,7 +1517,8 @@ def cmd_serve(a):
                     s[k] = req[k]
             if req.get("stop"):
                 s["stop"] = [req["stop"]] if isinstance(req["stop"], str) else req["stop"]
-            msgs = [{"role": "system", "content": "Continue the text. Reply with only the continuation."},
+            msgs = [{"role": "system", "content": (serve_system + "\n\n" if serve_system else "")
+                     + "Continue the text. Reply with only the continuation."},
                     {"role": "user", "content": prompt}]
             with lock:
                 SESSION.prompt_no += 1
@@ -1543,6 +1551,7 @@ def cmd_serve(a):
                 msgs = [{"role": m["role"], "content": m["content"] if isinstance(m["content"], str)
                          else "".join(p.get("text", "") for p in m["content"])}
                         for m in req["messages"]]
+                msgs = with_system(msgs)
             except (ValueError, KeyError, TypeError) as e:
                 return self._json(400, {"error": f"bad request: {e}"})
             s = dict(base)

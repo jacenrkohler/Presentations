@@ -29,17 +29,58 @@ The file `pre-work_downloads-installations_Windows.md` gives the same steps with
 
 ### Part 0b: Get the files
 
+**Pre-fetch script (to work without the internet).** The scripts [LAB01_Windows_pre-fetch.sh](LAB01_Windows_pre-fetch.sh), [LAB01_Windows_pre-fetch.ps1](LAB01_Windows_pre-fetch.ps1) and [LAB01_Windows_pre-fetch.py](LAB01_Windows_pre-fetch.py) in the `Lab01` folder download every file that this lab needs on Windows: installers, Python packages, models, Docker images and Ollama models. The files go into the folder `Downloads/Windows` in the `Ai-workshop` folder. Files that are already there are skipped, so you can run a script again after an interruption. In PowerShell, in the `Lab01` folder, do one of these commands:
+
+```
+powershell -ExecutionPolicy Bypass -File .\LAB01_Windows_pre-fetch.ps1
+py -3 LAB01_Windows_pre-fetch.py
+```
+
+Then follow [LAB01_Windows_Run_a_Model_in_a_Harness_OFFLINE.md](LAB01_Windows_Run_a_Model_in_a_Harness_OFFLINE.md) instead of this file. It installs everything from the downloaded files. To see what is missing first, add `--dry-run`. For the optional files, add `--optional`. For the NVIDIA GPU files, add `--gpu`. The script `LAB1-4_Windows_pre-fetch` in the `Ai-workshop` folder downloads the files for Labs 1 to 4 together.
+
 1. Get the lab files. Download [the ZIP file](https://github.com/jacenrkohler/Presentations/archive/refs/heads/main.zip) from [GitHub](https://github.com/jacenrkohler/Presentations/tree/main/Ai-workshop). Extract it. Use the `Ai-workshop` folder. Put it in a folder that has no spaces in its path, for example `<HOME_DIR>\ai-workshop`.
-2. Start Docker Desktop.
-3. In PowerShell, go to the `prefetch` folder and do this command:
+2. Download the models from Hugging Face. A Hugging Face account is not necessary. In PowerShell, in the `Lab01` folder, do these commands:
+
+   The GGUF models (1.1 GB and 2.5 GB). Sources: [Qwen/Qwen2.5-1.5B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF), [ggml-org/Qwen3-4B-GGUF](https://huggingface.co/ggml-org/Qwen3-4B-GGUF):
 
    ```
-   py -3 prefetch_lab1.py
+   curl.exe -L --create-dirs `
+     -o models/qwen2.5-1.5b-instruct-q4_k_m.gguf https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf `
+     -o models/Qwen3-4B-Q4_K_M.gguf https://huggingface.co/ggml-org/Qwen3-4B-GGUF/resolve/main/Qwen3-4B-Q4_K_M.gguf
    ```
 
-   It downloads the three Part 1 models, Qwen3-4B, the Docker images (Ollama, Open WebUI, KoboldCpp, llama.cpp) and the Ollama model `qwen2.5:1.5b`, approximately 13 GB. If it stops, do the command again. It continues from the last file.
+   The safetensors model (1.0 GB). Source: [Qwen/Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct):
 
-4. Optional files: `prefetch_lab1images.py` (Part 2c, image models, 3 GB) and `prefetch_lab1ministral.py` (Part 1e, Ministral 3, 3.2 GB).
+   ```
+   curl.exe -L --create-dirs `
+     -o models/qwen2.5-0.5b-instruct/config.json https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/config.json `
+     -o models/qwen2.5-0.5b-instruct/generation_config.json https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json `
+     -o models/qwen2.5-0.5b-instruct/tokenizer.json https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json `
+     -o models/qwen2.5-0.5b-instruct/tokenizer_config.json https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json `
+     -o models/qwen2.5-0.5b-instruct/model.safetensors https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/model.safetensors
+   ```
+
+   The ONNX model (0.6 GB). Source: [onnx-community/Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct):
+
+   ```
+   curl.exe -L --create-dirs `
+     -o models/qwen2.5-0.5b-instruct-onnx/config.json https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/config.json `
+     -o models/qwen2.5-0.5b-instruct-onnx/generation_config.json https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/generation_config.json `
+     -o models/qwen2.5-0.5b-instruct-onnx/tokenizer.json https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json `
+     -o models/qwen2.5-0.5b-instruct-onnx/tokenizer_config.json https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer_config.json `
+     -o models/qwen2.5-0.5b-instruct-onnx/onnx/model_quantized.onnx https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_quantized.onnx
+   ```
+
+3. Start Docker Desktop. Download the Docker images from their public registries ([ollama/ollama](https://hub.docker.com/r/ollama/ollama), [Open WebUI](https://github.com/open-webui/open-webui/pkgs/container/open-webui)):
+
+   ```
+   docker pull ollama/ollama:latest
+   docker pull ghcr.io/open-webui/open-webui:main
+   ```
+
+   Optional (Parts 4b and 4c): `docker pull koboldai/koboldcpp:latest` ([Docker Hub](https://hub.docker.com/r/koboldai/koboldcpp)) and `docker pull ghcr.io/ggml-org/llama.cpp:server` ([llama.cpp Docker documentation](https://github.com/ggml-org/llama.cpp/blob/master/docs/docker.md)). Part 4a downloads the Ollama model `qwen2.5:1.5b` from the [Ollama library](https://ollama.com/library/qwen2.5).
+
+4. Optional files: Part 1e uses [unsloth/Ministral-3-3B-Instruct-2512-GGUF](https://huggingface.co/unsloth/Ministral-3-3B-Instruct-2512-GGUF) (files `Ministral-3-3B-Instruct-2512-UD-IQ2_XXS.gguf` and `Ministral-3-3B-Instruct-2512-UD-IQ1_M.gguf`). Part 2c uses [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224) and [stabilityai/sd-turbo](https://huggingface.co/stabilityai/sd-turbo). Download them into `Lab01/models` in the same way, or use the pre-fetch script with `--optional`.
 
 ### Part 0c: Configure
 
@@ -435,13 +476,13 @@ A runtime loads a model and gives access to it. In this part, you use the Part 1
    docker compose --profile kobold down
    ```
 
-If the container does not start, use the KoboldCpp program. The script `prefetch_lab8.py` downloads it. Do this command:
+If the container does not start, use the KoboldCpp program (CPU build). The Lab 1 pre-fetch script downloads it into the folder `Lab01/kobold`. Do this command:
 
 ```
-.\kobold\koboldcpp.exe --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --port 5001 --usecpu
+.\kobold\koboldcpp-nocuda.exe --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --port 5001 --usecpu
 ```
 
-GPU option: NVIDIA: replace `--usecpu` with `--usecuda --gpulayers 99`. AMD or Intel: replace `--usecpu` with `--usevulkan --gpulayers 99`.
+GPU option: NVIDIA: use the CUDA build `.\kobold\koboldcpp.exe` (download `koboldcpp.exe` from [KoboldCpp releases](https://github.com/LostRuins/koboldcpp/releases) into the folder `Lab01\kobold`). Replace `--usecpu` with `--usecuda --gpulayers 99`. AMD or Intel: use the CPU build and replace `--usecpu` with `--usevulkan --gpulayers 99`.
 
 ### Part 4c (optional): llama.cpp
 

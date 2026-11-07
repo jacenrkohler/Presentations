@@ -2,6 +2,16 @@
 
 You will look inside three small models stored in three popular formats, run them in a harness you can read, change their settings, and then run the same kind of model in three other local runtimes. Optional parts add image models and cloud models, and the bonus parts try the official command-line tools and desktop apps of four AI companies.
 
+**Step-by-step walkthrough for your operating system** (each starts with Part 0, the setup for the lab):
+
+- [Windows](LAB01_Windows_Run_a_Model_in_a_Harness.md)
+- [macOS](LAB01_MacOS_Run_a_Model_in_a_Harness.md)
+- [Linux](LAB01_Linux_Run_a_Model_in_a_Harness.md)
+
+**Without the internet** (from a USB drive, or after you ran the pre-fetch script): [Windows](LAB01_Windows_Run_a_Model_in_a_Harness_OFFLINE.md) · [macOS](LAB01_MacOS_Run_a_Model_in_a_Harness_OFFLINE.md) · [Linux](LAB01_Linux_Run_a_Model_in_a_Harness_OFFLINE.md)
+
+**Pre-fetch scripts** (download every file for this lab into `Downloads/<OS>`; each runs on any operating system): Windows: [.sh](LAB01_Windows_pre-fetch.sh) [.ps1](LAB01_Windows_pre-fetch.ps1) [.py](LAB01_Windows_pre-fetch.py) · macOS: [.sh](LAB01_MacOS_pre-fetch.sh) [.ps1](LAB01_MacOS_pre-fetch.ps1) [.py](LAB01_MacOS_pre-fetch.py) · Linux: [.sh](LAB01_Linux_pre-fetch.sh) [.ps1](LAB01_Linux_pre-fetch.ps1) [.py](LAB01_Linux_pre-fetch.py)
+
 | Part | What you do | In the room? |
 |---|---|---|
 | Setup | Install and download | Before the workshop |
@@ -352,7 +362,7 @@ python3 harness.py ask --backend server --url http://localhost:5001/v1 --model q
 docker compose --profile kobold down
 ```
 
-If the container will not start (the image is built mainly for GPUs), run the KoboldCpp program instead (`prefetch_lab8.py` downloads it): `./kobold/koboldcpp-linux-x64 --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --port 5001 --usecpu` (use your system's file name, as in Lab 8, Part 1 (in the bonus-lab ZIP file)).
+If the container will not start (the image is built mainly for GPUs), run the KoboldCpp program instead (`prefetch_lab8.py` downloads it): `./kobold/koboldcpp-linux-x64 --model models/qwen2.5-1.5b-instruct-q4_k_m.gguf --port 5001 --usecpu` (use your system's file name, as in Lab 8, Part 1 (in `Lab08.zip`)).
 
 GPU option: `--profile kobold-gpu` (NVIDIA). With the program instead: replace `--usecpu` with `--usecuda --gpulayers 99` (NVIDIA), `--usevulkan --gpulayers 99` (AMD or Intel), or `--gpulayers 99` (Apple Silicon).
 

@@ -598,6 +598,15 @@ def cmd_run(a):
         print(f"\nSaved {len(all_recs)} records to {a.out}. Make a report: python3 bench.py report {a.out}")
     if a.live_html:
         write_html(a.live_html, all_recs, prices, "Lab 2 benchmark")
+    # Exit code for scripts: 0 = every prompt got an answer (PASS or FAIL), 1 = one or more ERROR, 2 = nothing ran.
+    errors = sum(1 for r in all_recs if r.get("error"))
+    if not all_recs:
+        print("\nNothing ran: no target could start.", file=sys.stderr)
+        return 2
+    if errors:
+        print(f"\n{errors} of {len(all_recs)} prompts had an ERROR (no answer). Look at the ERROR lines above.", file=sys.stderr)
+        return 1
+    return 0
 
 
 def read_records(paths):
@@ -679,8 +688,8 @@ def main():
     a = ap.parse_args()
     if getattr(a, "key_file", None):
         a.key_file = [os.path.expanduser(x.split("=", 1)[0]) + "=" + os.path.expanduser(x.split("=", 1)[1]) for x in a.key_file]
-    a.fn(a)
+    return a.fn(a) or 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
