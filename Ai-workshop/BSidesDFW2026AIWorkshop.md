@@ -72,6 +72,11 @@ TALON Cyber League · `<INSTRUCTOR_EMAIL>`
   - [5.1 Ideas to remember](#sec-5-1)
   - [5.2 Keep going](#sec-5-2)
   - [5.3 The four homework labs (6 to 9) and how to unlock them](#sec-5-3)
+  - [5.4 The homework labs, part by part](#sec-5-4)
+    - [Lab 6: Train Your Own Model](#lab-6)
+    - [Lab 7: Offline Models on Your Phone](#lab-7)
+    - [Lab 8: Attack an Agent](#lab-8)
+    - [Lab 9: Abliterated Models](#lab-9)
 - **[Appendices](#appendices)**
   - [A. Additional Resources](#app-a)
     - [Foundational learning](#foundational-learning)
@@ -86,11 +91,6 @@ TALON Cyber League · `<INSTRUCTOR_EMAIL>`
     - [Check before you quote](#check-before-you-quote)
   - [B. Terminology](#app-b)
   - [C. Who is missing from the story? 1843-2021](#app-c)
-  - [D. Bonus Labs](#app-d)
-    - [Lab 6: Train Your Own Model](#lab-6)
-    - [Lab 7: Offline Models on Your Phone](#lab-7)
-    - [Lab 8: Attack an Agent](#lab-8)
-    - [Lab 9: Abliterated Models](#lab-9)
 <!-- TOC:END -->
 
 <div style="page-break-after: always"></div>
@@ -1236,7 +1236,7 @@ And two habits: **log what happens** (Section 4.3), and **say which source says 
 
 **For builders.** Pull a model from [Hugging Face](https://huggingface.co/) and run it with [llama.cpp](https://github.com/ggml-org/llama.cpp) or [Ollama](https://docs.ollama.com/quickstart). Build your own test prompts. Red-team your own agent for indirect injection.
 
-**For a home lab.** Do the four homework labs (Section 5.3), and see Appendix A for the full reading list.
+**For a home lab.** Do the four homework labs (Sections 5.3 and 5.4), and see Appendix A for the full reading list.
 
 **People and writing worth following** (they write openly and carefully, and they disagree with each other):
 
@@ -1269,9 +1269,75 @@ And two habits: **log what happens** (Section 4.3), and **say which source says 
 3. Extract the ZIP file into the same folder. Windows File Explorer and macOS can open it. Type the password when asked. The full README inside the ZIP replaces the short one.
 4. Start with Part 0 of the lab: it sets up what the lab needs. The `prefetch_lab#.py` script inside the ZIP downloads any large files in advance.
 
+**What is in each lab.** Section 5.4 lists the parts of every homework lab.
+
 **Order.** Labs 6 and 8 build most directly on the workshop (training, and attacks and controls). Lab 7 needs a phone. Lab 9 needs the models from Lab 1.
 
 **Safety.** Run Lab 8 only in a sandbox, a virtual machine or a throwaway account, and never type real secrets. Use the attacks only on your own systems and on systems that you are allowed to test.
+
+<a id="sec-5-4"></a>
+
+### 5.4 The homework labs, part by part
+
+Each homework lab is split into parts, and every lab starts with Part 0, the setup for the lab. Use this list to choose a lab and to see what is in it before you unlock the ZIP file (Section 5.3 explains how).
+
+<a id="lab-6"></a>
+
+#### Lab 6: Train Your Own Model
+
+- Part 0: Set up for the lab
+- Part 1: Examine the training data
+- Part 2: Train the Chapter 1 network
+- Part 3: Change one setting at a time
+- Part 4: Overfitting, cross-entropy and regularization
+  - 4a: Make a network overfit
+  - 4b: Train the model that you keep
+- Part 5: Use the model on your own handwriting
+- Part 6 (optional): Attack the model
+  - 6a: Data poisoning
+  - 6b: A hidden backdoor
+- Part 7: Compare your model with the workshop models
+
+<a id="lab-7"></a>
+
+#### Lab 7: Offline Models on Your Phone
+
+- Part 0: Set up for the lab
+- Part 1: Android
+  - 1a: Google AI Edge Gallery
+  - 1b: PocketPal AI
+  - 1c: Copy the Lab 1 model to the phone
+  - 1d (optional): Ollama in Termux
+- Part 2: iOS
+  - 2a: Google AI Edge Gallery
+  - 2b: PocketPal AI
+  - 2c: Copy the Lab 1 model to the phone
+  - 2d (optional): Apple's on-device model
+- Part 3: Compare the results and examine the data that left the phone
+
+<a id="lab-8"></a>
+
+#### Lab 8: Attack an Agent
+
+- Part 0: Set up for the lab
+- Part 1: KoboldCpp and a tool-calling model
+- Part 2: Attack the agent, then add a control
+- Part 3: Kill switch drill
+- Part 4: Clean up
+
+<a id="lab-9"></a>
+
+#### Lab 9: Abliterated Models
+
+- Part 0: Set up for the lab
+- Part 1: Read how abliteration operates
+- Part 2: Compare the refusals of the two models
+- Part 3: Measure the cost in quality with the Lab 2 benchmark
+- Part 4: Find the change
+  - 4a: The name and the metadata
+  - 4b: The hash
+  - 4c: The weights
+- Part 5: Controls that do not depend on the model
 
 <div style="page-break-after: always"></div>
 
@@ -1596,67 +1662,3 @@ The usual story of AI names a handful of famous people. Many more people shaped 
 | Timnit Gebru and coauthors | 2021 | Wrote "On the Dangers of [Stochastic Parrots](https://en.wikipedia.org/wiki/Stochastic_parrot)" about the risks of ever larger language models: bias in training data, cost, and fluent text mistaken for understanding ([paper](https://doi.org/10.1145/3442188.3445922)) |
 
 Look at the last three rows. They are the start of Section 4: a model learns from the data that we give it, so who is in the data, and who checked the results, matters.
-
-<a id="app-d"></a>
-
-### D. Bonus Labs
-
-Labs 6 to 9 are the homework labs. Each walkthrough starts with Part 0, the setup for the lab.
-
-<a id="lab-6"></a>
-
-#### Lab 6: Train Your Own Model
-
-- Part 0: Set up for the lab
-- Part 1: Examine the training data
-- Part 2: Train the Chapter 1 network
-- Part 3: Change one setting at a time
-- Part 4: Overfitting, cross-entropy and regularization
-  - 4a: Make a network overfit
-  - 4b: Train the model that you keep
-- Part 5: Use the model on your own handwriting
-- Part 6 (optional): Attack the model
-  - 6a: Data poisoning
-  - 6b: A hidden backdoor
-- Part 7: Compare your model with the workshop models
-
-<a id="lab-7"></a>
-
-#### Lab 7: Offline Models on Your Phone
-
-- Part 0: Set up for the lab
-- Part 1: Android
-  - 1a: Google AI Edge Gallery
-  - 1b: PocketPal AI
-  - 1c: Copy the Lab 1 model to the phone
-  - 1d (optional): Ollama in Termux
-- Part 2: iOS
-  - 2a: Google AI Edge Gallery
-  - 2b: PocketPal AI
-  - 2c: Copy the Lab 1 model to the phone
-  - 2d (optional): Apple's on-device model
-- Part 3: Compare the results and examine the data that left the phone
-
-<a id="lab-8"></a>
-
-#### Lab 8: Attack an Agent
-
-- Part 0: Set up for the lab
-- Part 1: KoboldCpp and a tool-calling model
-- Part 2: Attack the agent, then add a control
-- Part 3: Kill switch drill
-- Part 4: Clean up
-
-<a id="lab-9"></a>
-
-#### Lab 9: Abliterated Models
-
-- Part 0: Set up for the lab
-- Part 1: Read how abliteration operates
-- Part 2: Compare the refusals of the two models
-- Part 3: Measure the cost in quality with the Lab 2 benchmark
-- Part 4: Find the change
-  - 4a: The name and the metadata
-  - 4b: The hash
-  - 4c: The weights
-- Part 5: Controls that do not depend on the model
