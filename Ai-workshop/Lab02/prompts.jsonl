@@ -1,0 +1,8 @@
+{"id": "math", "prompt": "What is 17 * 23? Answer with just the number.", "check": {"number": 391}}
+{"id": "capital", "prompt": "What is the capital of Australia? Answer with one word.", "check": {"contains": ["canberra"]}}
+{"id": "list", "prompt": "List exactly three colors, separated by commas, and nothing else.", "check": {"regex": "^\\s*[A-Za-z]+\\s*,\\s*[A-Za-z]+\\s*,\\s*[A-Za-z]+\\s*\\.?\\s*$"}}
+{"id": "json", "prompt": "Return only a JSON object with the keys \"service\" and \"port\" for SSH. No other text.", "check": {"json": {"port": 22}}}
+{"id": "riddle", "prompt": "A bat and a ball cost $1.10 in total. The bat costs $1.00 more than the ball. How much does the ball cost, in cents? Answer with just the number.", "check": {"number": 5}}
+{"id": "https", "prompt": "Which TCP port does HTTPS use by default? Answer with just the number.", "check": {"number": 443}}
+{"id": "tool", "prompt": "What files are in the current folder?", "system": "tools", "check": {"json": {"tool": "list_dir"}}}
+{"id": "explain", "prompt": "In two sentences, explain what prompt injection is.", "check": {"contains_any": ["instruction", "prompt"], "max_sentences": 3}}

@@ -1,4 +1,4 @@
-README.md# Lab 2: Benchmarking Models and Harnesses
+# Lab 2: Benchmarking Models and Harnesses
 
 A benchmark runs the same prompts the same way against different models, settings, runtimes or hardware, and measures two things: **how good the answers are** and **what they cost** in time and tokens. In this lab you add measurements to your harness (Part 1), then build a benchmark that runs against the harness and Ollama, shows results live, and scores each model's effectiveness (Part 2). Optional parts measure the cloud APIs (Part 3) and the official CLIs (Part 4).
 
