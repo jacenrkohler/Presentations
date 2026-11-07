@@ -2,6 +2,12 @@
 
 A benchmark runs the same prompts the same way against different models, settings, runtimes or hardware, and measures two things: **how good the answers are** and **what they cost** in time and tokens. In this lab you add measurements to your harness (Part 1), then build a benchmark that runs against the harness and Ollama, shows results live, and scores each model's effectiveness (Part 2). Optional parts measure the cloud APIs (Part 3) and the official CLIs (Part 4).
 
+**Step-by-step walkthrough for your operating system** (each starts with Part 0, the setup for the lab):
+
+- [Windows](LAB02_Windows_Benchmarking_Models_and_Harnesses.md)
+- [macOS](LAB02_MacOS_Benchmarking_Models_and_Harnesses.md)
+- [Linux](LAB02_Linux_Benchmarking_Models_and_Harnesses.md)
+
 | Part | What you do | In the room? |
 |---|---|---|
 | [Part 1](#part-1-add-metrics-to-the-harness) | Add metrics to `harness.py`: time and tokens, per prompt and per session | Yes |
