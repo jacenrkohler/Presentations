@@ -1,0 +1,8 @@
+# Never commit keys or model files
+.env
+.env.*
+*.key
+*.pem
+keys/
+models/
+__pycache__/

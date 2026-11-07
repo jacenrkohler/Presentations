@@ -1,0 +1,10 @@
+# Lab 1 Hugging Face packages: the safetensors chat model (Part 2a) and the image models (Part 2c).
+# Install PyTorch FIRST, from the right place for your computer (see README.md, Step 0):
+#   Linux or Windows, CPU only:  python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   macOS:                       python3 -m pip install torch
+# Then:                          python3 -m pip install -r requirements-hf.txt
+torch
+transformers
+accelerate
+diffusers
+pillow

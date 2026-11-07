@@ -1,0 +1,116 @@
+# Lab 1, Part 4: the same small model in three local runtimes, each with a web GUI.
+# The prefetch script puts the model file in ./models first:
+#   models/qwen2.5-1.5b-instruct-q4_k_m.gguf      (Part 1's GGUF model, about 1.1 GB)
+#
+# Start ONE profile at a time (a 16 GB laptop has room for one runtime plus the OS):
+#   Part 4a  docker compose --profile ollama   up -d    Ollama + Open WebUI   CLI: docker compose exec ollama ollama run qwen2.5:1.5b
+#                                                                             GUI: http://localhost:3000
+#   Part 4b  docker compose --profile kobold   up -d    KoboldCpp             GUI: http://localhost:5001
+#   Part 4c  docker compose --profile llamacpp up -d    llama.cpp server      GUI: http://localhost:8080
+# Stop it:   docker compose --profile ollama down       (use the same profile name)
+#
+# Lab 3 starts only the GUI and points it at the harness:  docker compose --profile webui up -d
+#
+# Each runtime also speaks the OpenAI API, so the Lab 1 harness can talk to it:
+#   python3 harness.py ask --backend server --url http://localhost:11434/v1 --model qwen2.5:1.5b "Hello"
+#   python3 harness.py ask --backend server --url http://localhost:5001/v1  --model qwen "Hello"
+#   python3 harness.py ask --backend server --url http://localhost:8080/v1  --model qwen "Hello"
+#
+# Another GGUF file from ./models (KoboldCpp and llama.cpp only):
+#   MODEL=Ministral-3-3B-Instruct-2512-UD-IQ2_XXS.gguf docker compose --profile llamacpp up -d
+#
+# All ports are bound to 127.0.0.1, so only this laptop can reach them.
+# mem_limit keeps a container from taking the whole laptop. Raise it if the model is killed.
+# NVIDIA GPU? Use the ollama-gpu, kobold-gpu or llamacpp-gpu profiles at the end of this file.
+services:
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    ports: ["127.0.0.1:11434:11434"]
+    volumes: ["ollama-data:/root/.ollama"]
+    mem_limit: 7g
+
+  webui:
+    # Open WebUI: a ChatGPT-style GUI. The first account you create is a local admin,
+    # stored only inside this container's volume.
+    profiles: ["ollama", "ollama-gpu", "webui"]
+    image: ghcr.io/open-webui/open-webui:main
+    ports: ["127.0.0.1:3000:8080"]
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      # Lab 4: send the signed-in user's name, email and role to the model server in
+      # X-OpenWebUI-User-* headers, so the harness log records who asked.
+      ENABLE_FORWARD_USER_INFO_HEADERS: "true"
+      # Lab 4: Open WebUI's own audit log of requests and responses, in /app/backend/data/audit.log
+      AUDIT_LOG_LEVEL: "REQUEST_RESPONSE"
+    extra_hosts: ["host.docker.internal:host-gateway"]   # lets it reach the harness on Linux (Lab 3)
+    volumes: ["webui-data:/app/backend/data"]
+    mem_limit: 3g
+
+  kobold:
+    # UNVERIFIED on CPU-only laptops: the official image targets GPUs. If it will not start,
+    # run the KoboldCpp program instead (Part 4b in the README shows the command).
+    profiles: ["kobold"]
+    image: koboldai/koboldcpp:latest
+    ports: ["127.0.0.1:5001:5001"]
+    volumes: ["./models:/models:ro"]
+    command: ["--model", "/models/${MODEL:-qwen2.5-1.5b-instruct-q4_k_m.gguf}", "--port", "5001", "--host", "0.0.0.0",
+              "--contextsize", "4096", "--usecpu"]
+    mem_limit: 7g
+
+  llamacpp:
+    profiles: ["llamacpp"]
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["./models:/models:ro"]
+    command: ["-m", "/models/${MODEL:-qwen2.5-1.5b-instruct-q4_k_m.gguf}", "--host", "0.0.0.0", "--port", "8080",
+              "-c", "4096", "--alias", "qwen"]
+    mem_limit: 7g
+
+  # ---- GPU options (NVIDIA only: Linux with the NVIDIA Container Toolkit, or Windows with WSL 2).
+  # Same models, ports and GUIs as above. Docker on macOS cannot use the GPU; use the native
+  # Ollama app or the KoboldCpp program instead.
+  ollama-gpu:
+    profiles: ["ollama-gpu"]
+    image: ollama/ollama:latest
+    ports: ["127.0.0.1:11434:11434"]
+    volumes: ["ollama-data:/root/.ollama"]
+    mem_limit: 7g
+    networks:
+      default:
+        aliases: ["ollama"]   # so Open WebUI finds it under the same name
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+  kobold-gpu:
+    # UNVERIFIED: test before the event. Older KoboldCpp versions call --usecuda --usecublas.
+    profiles: ["kobold-gpu"]
+    image: koboldai/koboldcpp:latest
+    ports: ["127.0.0.1:5001:5001"]
+    volumes: ["./models:/models:ro"]
+    command: ["--model", "/models/${MODEL:-qwen2.5-1.5b-instruct-q4_k_m.gguf}", "--port", "5001", "--host", "0.0.0.0",
+              "--contextsize", "4096", "--usecuda", "--gpulayers", "99"]
+    mem_limit: 7g
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+  llamacpp-gpu:
+    profiles: ["llamacpp-gpu"]
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["./models:/models:ro"]
+    command: ["-m", "/models/${MODEL:-qwen2.5-1.5b-instruct-q4_k_m.gguf}", "--host", "0.0.0.0", "--port", "8080",
+              "-c", "4096", "--alias", "qwen", "-ngl", "99"]
+    mem_limit: 7g
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+volumes:
+  ollama-data:
+  webui-data:
